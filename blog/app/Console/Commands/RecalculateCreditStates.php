@@ -28,7 +28,12 @@ class RecalculateCreditStates extends Command
             $saldo = max(0, $total - $pagado);
             $vence = $c->fecha_vencimiento_ext ?? $c->fecha_vencimiento;
 
-            $nuevoEstado = $saldo <= 0 ? 'pagado' : ($vence->lt($hoy) ? 'vencido' : 'activo');
+            // Si aún no hay ítems en el crédito, mantener 'pendiente' para permitir agregar detalles
+            if ($total === 0) {
+                $nuevoEstado = 'pendiente';
+            } else {
+                $nuevoEstado = $saldo <= 0 ? 'pagado' : ($vence->lt($hoy) ? 'vencido' : 'activo');
+            }
             if (!$dry) {
                 if ($c->estado !== $nuevoEstado) {
                     $c->estado = $nuevoEstado;
@@ -76,4 +81,3 @@ class RecalculateCreditStates extends Command
         return Command::SUCCESS;
     }
 }
-

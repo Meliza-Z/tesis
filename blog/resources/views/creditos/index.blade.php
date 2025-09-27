@@ -15,9 +15,9 @@
                     </h4>
                     <p class="text-muted mb-0">Gestión y seguimiento de créditos de clientes</p>
                 </div>
-                <a href="{{ route('creditos.create') }}" class="btn btn-success">
+                {{-- <a href="{{ route('creditos.create') }}" class="btn btn-success">
                     <i class="fas fa-plus me-1"></i> Nuevo Crédito
-                </a>
+                </a> --}}
             </div>
 
             <!-- Main Card -->
@@ -133,9 +133,7 @@
                                             <div class="empty-state">
                                                 <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 24 24' fill='none' stroke='%23cbd5e0' stroke-width='1' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'%3E%3C/path%3E%3Cpolyline points='14,2 14,8 20,8'%3E%3C/polyline%3E%3Cline x1='12' y1='18' x2='12' y2='12'%3E%3C/line%3E%3Cline x1='9' y1='15' x2='15' y2='15'%3E%3C/line%3E%3C/svg%3E" alt="No hay datos" class="mb-3">
                                                 <h5 class="text-muted mb-2">No hay créditos registrados que coincidan con la búsqueda</h5>
-                                                <a href="{{ route('creditos.create') }}" class="btn btn-success">
-                                                    <i class="fas fa-plus me-1"></i> Crear primer crédito
-                                                </a>
+                                                {{-- Botón de crear crédito oculto por decisión de UX --}}
                                             </div>
                                         </td>
                                     </tr>

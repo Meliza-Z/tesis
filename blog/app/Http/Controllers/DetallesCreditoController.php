@@ -33,7 +33,10 @@ class DetallesCreditoController extends Controller
     public function create()
     {
         $creditos = \App\Models\Credito::with('cliente')
-            ->whereIn('estado', ['activo'])
+            ->where(function ($q) {
+                $q->whereIn('estado', ['pendiente'])
+                    ->orDoesntHave('detalles');
+            })
             ->get();
         $productos = Producto::all();
 

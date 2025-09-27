@@ -5,51 +5,36 @@ namespace App\Http\Controllers;
 use App\Models\CuentaPorCobrar;
 use App\Models\Credito;
 use App\Models\DetalleCredito;
+use App\Models\Pago;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 
 class CuentaPorCobrarController extends Controller
 {
     public function index()
     {
-        // ÚNICO CAMBIO: Solo obtener cuentas que tengan créditos activos
-        $cuentas = CuentaPorCobrar::with('cliente')
-            ->whereExists(function($query) {
-                $query->select('id')
-                    ->from('creditos')
-                    ->whereColumn('creditos.cliente_id', 'cuentas_por_cobrar.cliente_id');
-            })
-            ->get();
-        
-        // El resto del código permanece exactamente igual
-        foreach ($cuentas as $cuenta) {
-            // Totales en centavos (nuevo esquema) y conversión a decimales para la vista
-            $totalProductosCent = DetalleCredito::join('creditos', 'detalle_creditos.credito_id', '=', 'creditos.id')
-                ->where('creditos.cliente_id', $cuenta->cliente_id)
-                ->sum('detalle_creditos.subtotal_centavos');
+        // Construir filas por crédito con cliente y progresos
+        $creditos = Credito::with(['cliente', 'detalles', 'pagos'])->get()->map(function (Credito $c) {
+            $monto = $c->monto_total_centavos;
+            $pagado = $c->total_pagado_centavos;
+            $saldo = max(0, $monto - $pagado);
+            $vence = $c->fecha_vencimiento_ext ?? $c->fecha_vencimiento;
+            $progreso = $monto > 0 ? round(($pagado / $monto) * 100, 2) : 0;
+            return (object) [
+                'id' => $c->id,
+                'codigo' => $c->codigo,
+                'cliente' => optional($c->cliente)->nombre ?? 'N/D',
+                'monto' => $monto / 100,
+                'saldo' => $saldo / 100,
+                'vence' => $vence ? $vence->toDateString() : null,
+                'progreso' => $progreso,
+                'estado' => $c->estado,
+            ];
+        });
 
-            $totalPagadoCent = \App\Models\Pago::join('creditos', 'pagos.credito_id', '=', 'creditos.id')
-                ->where('creditos.cliente_id', $cuenta->cliente_id)
-                ->sum('pagos.monto_pagado_centavos');
-
-            $totalProductos = $totalProductosCent / 100;
-            $totalPagado = $totalPagadoCent / 100;
-            $saldoPendiente = $totalProductos - $totalPagado;
-            
-            // Obtener la fecha de vencimiento más reciente del crédito del cliente
-            $fechaVencimientoCredito = Credito::where('cliente_id', $cuenta->cliente_id)
-                ->orderByRaw('COALESCE(fecha_vencimiento_ext, fecha_vencimiento) DESC')
-                ->value('fecha_vencimiento');
-            
-            // Si existe fecha de vencimiento en crédito, usarla; sino usar la de la cuenta
-            $fechaVencimientoFinal = $fechaVencimientoCredito ?? $cuenta->fecha_vencimiento;
-            
-            // Agregar los totales como atributos temporales
-            $cuenta->totalProductos = $totalProductos;
-            $cuenta->saldoPendienteReal = $saldoPendiente;
-            $cuenta->fecha_vencimiento_real = $fechaVencimientoFinal;
-        }
-        
-        return view('cuenta_cobrar.index', compact('cuentas'));
+        return view('cuenta_cobrar.index', [
+            'creditos' => $creditos,
+        ]);
     }
 
     public function edit(CuentaPorCobrar $cuenta_cobrar)
@@ -119,5 +104,47 @@ class CuentaPorCobrarController extends Controller
                 'message' => 'Error al sincronizar: ' . $e->getMessage()
             ]);
         }
+    }
+
+    // Mostrar un crédito con sus ítems y pagos, y permitir registrar pagos
+    public function showCredit(Credito $credito)
+    {
+        $credito->load(['cliente', 'detalles.producto', 'pagos']);
+        // Mostrar misma UI que /creditos/{id}
+        return view('creditos.show', compact('credito'));
+    }
+
+    // Marcar crédito como pagado si el progreso está al 100% (saldo 0)
+    public function markPaid(Credito $credito)
+    {
+        if ($credito->saldo_pendiente_centavos > 0) {
+            return back()->with('error', 'No se puede marcar como pagado: el saldo no es 0.');
+        }
+        $credito->estado = 'pagado';
+        $credito->save();
+
+        // Actualizar cuentas por cobrar del cliente
+        $cliente = $credito->cliente()->with('creditos.detalles', 'creditos.pagos')->first();
+        if ($cliente) {
+            $creditosCliente = $cliente->creditos;
+            $montoAdeudado = (int) $creditosCliente->sum(fn($cr) => $cr->monto_total_centavos);
+            $saldoPend = (int) $creditosCliente->sum(fn($cr) => $cr->saldo_pendiente_centavos);
+            $abiertos = $creditosCliente->filter(fn($cr) => in_array($cr->estado, ['activo','vencido']));
+            $vencimientos = $creditosCliente->map(fn($cr) => ($cr->fecha_vencimiento_ext ?? $cr->fecha_vencimiento));
+            if ($vencimientos->isNotEmpty()) {
+                $fechaVenc = $abiertos->isNotEmpty() ? $abiertos->map(fn($cr)=>($cr->fecha_vencimiento_ext ?? $cr->fecha_vencimiento))->min() : $vencimientos->max();
+                CuentaPorCobrar::updateOrCreate(
+                    ['cliente_id' => $cliente->id],
+                    [
+                        'monto_adeudado_centavos' => $montoAdeudado,
+                        'saldo_pendiente_centavos' => $saldoPend,
+                        'fecha_vencimiento' => $fechaVenc?->toDateString(),
+                        'estado' => $creditosCliente->contains(fn($cr) => $cr->estado === 'vencido') ? 'mora' : 'al_dia',
+                    ]
+                );
+            }
+        }
+
+        return back()->with('success', 'Crédito marcado como pagado.');
     }
 }

@@ -15,7 +15,7 @@
             <i class="fas fa-{{ isset($pago->id) ? 'edit' : 'plus' }} me-2 text-primary"></i>
             {{ isset($pago->id) ? 'Editar Pago' : 'Registrar Nuevo Pago' }}
         </h1>
-        <a href="{{ route('pagos.index') }}" class="btn btn-secondary shadow-sm">
+        <a href="{{ route('cuenta_cobrar.index') }}" class="btn btn-secondary shadow-sm">
             <i class="fas fa-arrow-left me-1"></i>
             Volver a Pagos
         </a>

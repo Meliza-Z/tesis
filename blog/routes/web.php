@@ -40,6 +40,8 @@ Route::middleware('auth')->group(function () {
         ->only(['index', 'edit', 'update']);
     Route::post('cuenta-cobrar/{id}/sincronizar', [CuentaPorCobrarController::class, 'sincronizar'])
         ->name('cuenta_cobrar.sincronizar');
+    Route::get('cuenta_cobrar/creditos/{credito}', [CuentaPorCobrarController::class, 'showCredit'])->name('cuenta_cobrar.credito');
+    Route::post('creditos/{credito}/mark-paid', [CuentaPorCobrarController::class, 'markPaid'])->name('creditos.markPaid');
     
     // Ruta personalizada para mostrar todos los detalles de un crédito por su ID
     Route::get('detalle_credito/{detalle_credito}', [DetallesCreditoController::class, 'show'])->name('detalle_credito.show');
