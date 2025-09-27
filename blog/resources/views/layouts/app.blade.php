@@ -108,9 +108,9 @@
         <a href="{{ route('productos.index') }}" class="{{ Request::is('productos*') ? 'active' : '' }}">
             <i class="fas fa-boxes"></i> Productos
         </a>
-        <a href="{{ route('creditos.index') }}" class="{{ Request::is('creditos*') ? 'active' : '' }}">
+        {{-- <a href="{{ route('creditos.index') }}" class="{{ Request::is('creditos*') ? 'active' : '' }}">
             <i class="fas fa-handshake"></i> Créditos
-        </a>
+        </a> --}}
         <a href="{{ route('detalle_credito.index') }}" class="{{ Request::is('detalle_credito*') ? 'active' : '' }}">
             <i class="fas fa-file-invoice"></i> Detalles Créditos
         </a>

@@ -28,6 +28,8 @@ Route::middleware('auth')->group(function () {
     
     // Rutas resource completas
     Route::resource('clientes', ClienteController::class);
+    Route::get('clientes/{cliente}/creditos', [ClienteController::class, 'creditos'])->name('clientes.creditos');
+    Route::post('clientes/{cliente}/creditos', [ClienteController::class, 'storeCredito'])->name('clientes.creditos.store');
     Route::resource('productos', ProductoController::class);
     Route::resource('creditos', CreditoController::class);
     Route::resource('pagos', PagoController::class);

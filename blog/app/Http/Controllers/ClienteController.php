@@ -10,7 +10,7 @@ class ClienteController extends Controller
     // Mostrar lista de clientes
     public function index()
     {
-        $clientes = Cliente::all();
+        $clientes = Cliente::with('creditos')->get();
         return view('clientes.index', compact('clientes'));
     }
 
@@ -88,5 +88,62 @@ class ClienteController extends Controller
     {
         $cliente->delete();
         return redirect()->route('clientes.index')->with('success', 'Cliente eliminado correctamente.');
+    }
+
+    private function generarCodigoUnico(): string
+    {
+        do {
+            $codigo = 'CR' . date('Ym') . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
+        } while (\App\Models\Credito::where('codigo', $codigo)->exists());
+        return $codigo;
+    }
+
+    // Créditos por cliente: listado y creación con reglas de negocio
+    public function creditos(Cliente $cliente)
+    {
+        $cliente->load(['creditos.detalles', 'creditos.pagos']);
+
+        $creditos = $cliente->creditos()->latest('fecha_credito')->get();
+        $abiertos = $cliente->creditos()->whereIn('estado', ['pendiente','activo'])->count();
+        $tieneVencido = $cliente->creditos()->where('estado','vencido')->exists();
+        $bloqueado = $tieneVencido || $abiertos >= 2;
+
+        // Exposición y límite
+        $expuestoCentavos = (int) $cliente->creditos->sum(fn($c) => $c->saldo_pendiente_centavos);
+        $limiteCentavos = (int) ($cliente->limite_credito_centavos ?? 0);
+
+        return view('clientes.creditos', compact('cliente','creditos','abiertos','tieneVencido','bloqueado','expuestoCentavos','limiteCentavos'));
+    }
+
+    public function storeCredito(Request $request, Cliente $cliente)
+    {
+        // Reglas: no más de 2 abiertos; no permitir si existe vencido
+        $abiertos = $cliente->creditos()->whereIn('estado', ['pendiente','activo'])->count();
+        $tieneVencido = $cliente->creditos()->where('estado','vencido')->exists();
+        if ($tieneVencido) {
+            return back()->with('error', 'El cliente tiene créditos vencidos. No se puede abrir uno nuevo.');
+        }
+        if ($abiertos >= 2) {
+            return back()->with('error', 'Máximo 2 créditos abiertos por cliente.');
+        }
+
+        $data = $request->validate([
+            'fecha_credito' => 'required|date',
+            'fecha_vencimiento' => 'required|date|after_or_equal:fecha_credito',
+            'plazo_dias' => 'nullable|integer|min:1',
+            'fecha_vencimiento_ext' => 'nullable|date|after_or_equal:fecha_vencimiento',
+        ]);
+
+        $credito = new \App\Models\Credito();
+        $credito->cliente_id = $cliente->id;
+        $credito->codigo = $this->generarCodigoUnico();
+        $credito->fecha_credito = $data['fecha_credito'];
+        $credito->fecha_vencimiento = $data['fecha_vencimiento'];
+        if (!empty($data['plazo_dias'])) $credito->plazo_dias = $data['plazo_dias'];
+        if (!empty($data['fecha_vencimiento_ext'])) $credito->fecha_vencimiento_ext = $data['fecha_vencimiento_ext'];
+        $credito->estado = 'pendiente';
+        $credito->save();
+
+        return redirect()->route('clientes.creditos', $cliente)->with('success', 'Crédito creado. Agrega detalles para calcular el monto.');
     }
 }

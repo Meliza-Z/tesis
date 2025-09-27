@@ -112,9 +112,14 @@
                                     </a>
                                 </td>
                                 <td>
-                                    <span class="badge bg-success">
-                                        ${{ number_format($cliente->limite_credito ?? 0, 2) }}
-                                    </span>
+                                    <div class="d-flex flex-column">
+                                        <span class="badge bg-success mb-1">
+                                            Límite: ${{ number_format($cliente->limite_credito ?? 0, 2) }}
+                                        </span>
+                                        <span class="badge bg-info">
+                                            Usado: ${{ number_format($cliente->total_pendiente ?? 0, 2) }}
+                                        </span>
+                                    </div>
                                 </td>
                                 <td>
                                     <div class="btn-group" role="group">
@@ -122,6 +127,11 @@
                                            class="btn btn-warning btn-sm" 
                                            title="Editar cliente">
                                             <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="{{ route('clientes.creditos', ['cliente' => $cliente->id]) }}"
+                                           class="btn btn-info btn-sm"
+                                           title="Ver créditos del cliente">
+                                            <i class="fas fa-credit-card"></i>
                                         </a>
                                         <button class="btn btn-danger btn-sm" 
                                                 onclick="confirmarEliminacion({{ $cliente->id }}, '{{ $cliente->nombre }}')"
