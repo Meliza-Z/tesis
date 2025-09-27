@@ -15,15 +15,15 @@ class DetalleCredito extends Model
         'credito_id',
         'producto_id',
         'cantidad',
-        'precio_unitario',
-        'subtotal',
+        'precio_unitario_centavos',
+        'subtotal_centavos',
         'observaciones'
     ];
 
     protected $casts = [
         'cantidad' => 'integer',
-        'precio_unitario' => 'decimal:2',
-        'subtotal' => 'decimal:2',
+        'precio_unitario_centavos' => 'integer',
+        'subtotal_centavos' => 'integer',
     ];
 
     /**
@@ -42,26 +42,29 @@ class DetalleCredito extends Model
         return $this->belongsTo(Producto::class);
     }
 
-    /**
-     * Mutator para calcular subtotal automáticamente
-     */
-    public function setSubtotalAttribute()
+    // Compatibilidad y helpers en decimales
+    public function getPrecioUnitarioAttribute(): float
     {
-        $this->attributes['subtotal'] = $this->cantidad * $this->precio_unitario;
+        return ($this->precio_unitario_centavos ?? 0) / 100;
     }
 
-    /**
-     * Accessor para obtener el subtotal formateado
-     */
-    public function getSubtotalFormateadoAttribute()
+    public function setPrecioUnitarioAttribute($value): void
+    {
+        $this->attributes['precio_unitario_centavos'] = (int) round(((float) $value) * 100);
+        $this->attributes['subtotal_centavos'] = (int) (($this->attributes['cantidad'] ?? 1) * $this->attributes['precio_unitario_centavos']);
+    }
+
+    public function getSubtotalAttribute(): float
+    {
+        return ($this->subtotal_centavos ?? 0) / 100;
+    }
+
+    public function getSubtotalFormateadoAttribute(): string
     {
         return number_format($this->subtotal, 2);
     }
 
-    /**
-     * Accessor para obtener el precio unitario formateado
-     */
-    public function getPrecioUnitarioFormateadoAttribute()
+    public function getPrecioUnitarioFormateadoAttribute(): string
     {
         return number_format($this->precio_unitario, 2);
     }

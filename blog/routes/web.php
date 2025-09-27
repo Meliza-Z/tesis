@@ -36,6 +36,8 @@ Route::middleware('auth')->group(function () {
     // Cuenta por cobrar con restricción solo para index, edit, update
     Route::resource('cuenta_cobrar', CuentaPorCobrarController::class)
         ->only(['index', 'edit', 'update']);
+    Route::post('cuenta-cobrar/{id}/sincronizar', [CuentaPorCobrarController::class, 'sincronizar'])
+        ->name('cuenta_cobrar.sincronizar');
     
     // Ruta personalizada para mostrar todos los detalles de un crédito por su ID
     Route::get('detalle_credito/{detalle_credito}', [DetallesCreditoController::class, 'show'])->name('detalle_credito.show');

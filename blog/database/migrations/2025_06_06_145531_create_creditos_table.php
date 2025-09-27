@@ -16,10 +16,13 @@ return new class extends Migration
             $table->foreignId('cliente_id')->constrained('clientes')->onDelete('cascade');
             $table->string('codigo')->unique(); // código único del crédito
             $table->date('fecha_credito'); // fecha de creación del crédito
-            $table->date('fecha_vencimiento'); // fecha de vencimiento del crédito
-            $table->decimal('monto_total', 10, 2); // monto total del crédito
-            $table->decimal('saldo_pendiente', 10, 2); // saldo que falta por pagar
-            $table->enum('estado', ['pendiente', 'pagado'])->default('pendiente'); // estado del crédito
+            $table->unsignedSmallInteger('plazo_dias')->default(15); // plazo por defecto en días
+            $table->date('fecha_vencimiento'); // fecha de vencimiento inicial
+            $table->date('fecha_vencimiento_ext')->nullable(); // extensión de vencimiento
+            // Totales y saldos se derivan de detalle_creditos y pagos (no se persisten aquí)
+            $table->enum('estado', ['pendiente', 'activo', 'vencido', 'pagado'])->default('pendiente'); // estado del crédito
+            // Índices útiles para consultas
+            $table->index(['cliente_id', 'estado', 'fecha_vencimiento']);
             $table->timestamps();
         });
     }

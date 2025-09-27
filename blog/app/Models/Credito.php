@@ -15,16 +15,16 @@ class Credito extends Model
         'codigo',
         'fecha_credito',
         'fecha_vencimiento',
-        'monto_total',
-        'saldo_pendiente',
+        'plazo_dias',
+        'fecha_vencimiento_ext',
         'estado'
     ];
 
     protected $casts = [
         'fecha_credito' => 'date',
         'fecha_vencimiento' => 'date',
-        'monto_total' => 'decimal:2',
-        'saldo_pendiente' => 'decimal:2',
+        'fecha_vencimiento_ext' => 'date',
+        'plazo_dias' => 'integer',
     ];
 
     /**
@@ -56,7 +56,8 @@ class Credito extends Model
      */
     public function getEstaVencidoAttribute()
     {
-        return $this->fecha_vencimiento->isPast() && $this->estado !== 'pagado';
+        $vence = $this->fecha_vencimiento_ext ?? $this->fecha_vencimiento;
+        return $vence->isPast() && $this->estado !== 'pagado';
     }
 
     /**
@@ -64,28 +65,41 @@ class Credito extends Model
      */
     public function getDiasPlazoAttribute()
     {
-        return $this->fecha_credito->diffInDays($this->fecha_vencimiento);
+        return $this->plazo_dias ?? $this->fecha_credito->diffInDays($this->fecha_vencimiento);
     }
 
-    /**
-     * Accessor para obtener el porcentaje pagado
-     */
-    public function getPorcentajePagadoAttribute()
+    // Derivados en centavos
+    public function getMontoTotalCentavosAttribute(): int
     {
-        if ($this->monto_total <= 0) {
-            return 0;
-        }
-        
-        $montoPagado = $this->monto_total - $this->saldo_pendiente;
-        return ($montoPagado / $this->monto_total) * 100;
+        return (int) $this->detalles()->sum('subtotal_centavos');
     }
 
-    /**
-     * Accessor para obtener el monto pagado
-     */
-    public function getMontoPagadoAttribute()
+    public function getTotalPagadoCentavosAttribute(): int
     {
-        return $this->monto_total - $this->saldo_pendiente;
+        return (int) $this->pagos()->sum('monto_pagado_centavos');
+    }
+
+    public function getSaldoPendienteCentavosAttribute(): int
+    {
+        return max(0, $this->monto_total_centavos - $this->total_pagado_centavos);
+    }
+
+    // Compatibilidad con API previa en decimales
+    public function getMontoTotalAttribute(): float
+    {
+        return $this->monto_total_centavos / 100;
+    }
+
+    public function getSaldoPendienteAttribute(): float
+    {
+        return $this->saldo_pendiente_centavos / 100;
+    }
+
+    public function getPorcentajePagadoAttribute(): float
+    {
+        $total = $this->monto_total_centavos;
+        if ($total <= 0) return 0.0;
+        return 100.0 * ($this->total_pagado_centavos / $total);
     }
 
     /**
@@ -109,36 +123,23 @@ class Credito extends Model
      */
     public function scopeVencidos($query)
     {
-        return $query->where('fecha_vencimiento', '<', now())
-                    ->where('estado', '!=', 'pagado');
+        return $query->whereRaw('COALESCE(fecha_vencimiento_ext, fecha_vencimiento) < ?', [now()])
+                     ->where('estado', '!=', 'pagado');
     }
 
     /**
      * Método para actualizar el monto total basado en los detalles
      */
-    public function actualizarMontoTotal()
-    {
-        $nuevoMontoTotal = $this->detalles()->sum('subtotal');
-        
-        // Si es un crédito nuevo, actualizar también el saldo pendiente
-        if ($this->saldo_pendiente == $this->monto_total) {
-            $this->saldo_pendiente = $nuevoMontoTotal;
-        }
-        
-        $this->monto_total = $nuevoMontoTotal;
-        $this->save();
-    }
+    public function actualizarMontoTotal(): void {}
 
     /**
      * Método para recalcular el estado basado en el saldo
      */
-    public function recalcularEstado()
+    public function recalcularEstado(): void
     {
-        if ($this->saldo_pendiente <= 0) {
-            $this->estado = 'pagado';
-        } else {
-            $this->estado = 'pendiente';
-        }
+        $vence = $this->fecha_vencimiento_ext ?? $this->fecha_vencimiento;
+        $saldo = $this->saldo_pendiente_centavos;
+        $this->estado = $saldo <= 0 ? 'pagado' : ($vence->isPast() ? 'vencido' : 'activo');
         $this->save();
     }
 }

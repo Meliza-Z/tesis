@@ -15,9 +15,11 @@ return new class extends Migration
         $table->id();
         $table->foreignId('credito_id')->constrained('creditos')->onDelete('cascade');
         $table->date('fecha_pago');
-        $table->decimal('monto_pago', 10, 2);
+        // Monto pagado en centavos (sin decimales)
+        $table->unsignedBigInteger('monto_pagado_centavos');
         $table->string('metodo_pago')->nullable();
-        $table->enum('estado_pago', ['pendiente', 'al_dia', 'pagado'])->default('pendiente');
+        // Índices para consultas por crédito y fecha
+        $table->index(['credito_id', 'fecha_pago']);
         $table->timestamps();
     });
 }

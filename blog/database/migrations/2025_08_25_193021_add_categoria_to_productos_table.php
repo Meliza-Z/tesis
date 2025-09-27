@@ -9,15 +9,19 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('productos', function (Blueprint $table) {
-            // Agregar columna categoria como string temporal
-            $table->string('categoria')->nullable()->after('descripcion');
+            // Agregar columna categoria si no existe (ya incluida en creación)
+            if (!Schema::hasColumn('productos', 'categoria')) {
+                $table->string('categoria')->nullable()->after('descripcion');
+            }
         });
     }
 
     public function down(): void
     {
         Schema::table('productos', function (Blueprint $table) {
-            $table->dropColumn('categoria');
+            if (Schema::hasColumn('productos', 'categoria')) {
+                $table->dropColumn('categoria');
+            }
         });
     }
 };

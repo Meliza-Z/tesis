@@ -22,22 +22,22 @@ class CuentaPorCobrarController extends Controller
         
         // El resto del código permanece exactamente igual
         foreach ($cuentas as $cuenta) {
-            // Obtener el total de productos usando join
-            $totalProductos = DetalleCredito::join('creditos', 'detalle_credito.credito_id', '=', 'creditos.id')
+            // Totales en centavos (nuevo esquema) y conversión a decimales para la vista
+            $totalProductosCent = DetalleCredito::join('creditos', 'detalle_creditos.credito_id', '=', 'creditos.id')
                 ->where('creditos.cliente_id', $cuenta->cliente_id)
-                ->sum('detalle_credito.subtotal');
-            
-            // Obtener el total de pagos realizados por el cliente
-            $totalPagado = \App\Models\Pago::join('creditos', 'pagos.credito_id', '=', 'creditos.id')
+                ->sum('detalle_creditos.subtotal_centavos');
+
+            $totalPagadoCent = \App\Models\Pago::join('creditos', 'pagos.credito_id', '=', 'creditos.id')
                 ->where('creditos.cliente_id', $cuenta->cliente_id)
-                ->sum('pagos.monto_pago');
-            
-            // Calcular el saldo pendiente real
+                ->sum('pagos.monto_pagado_centavos');
+
+            $totalProductos = $totalProductosCent / 100;
+            $totalPagado = $totalPagadoCent / 100;
             $saldoPendiente = $totalProductos - $totalPagado;
             
             // Obtener la fecha de vencimiento más reciente del crédito del cliente
             $fechaVencimientoCredito = Credito::where('cliente_id', $cuenta->cliente_id)
-                ->orderBy('fecha_vencimiento', 'desc')
+                ->orderByRaw('COALESCE(fecha_vencimiento_ext, fecha_vencimiento) DESC')
                 ->value('fecha_vencimiento');
             
             // Si existe fecha de vencimiento en crédito, usarla; sino usar la de la cuenta
@@ -56,7 +56,7 @@ class CuentaPorCobrarController extends Controller
     {
         // Obtener la fecha de vencimiento del crédito asociado
         $fechaVencimientoCredito = Credito::where('cliente_id', $cuenta_cobrar->cliente_id)
-            ->orderBy('fecha_vencimiento', 'desc')
+            ->orderByRaw('COALESCE(fecha_vencimiento_ext, fecha_vencimiento) DESC')
             ->value('fecha_vencimiento');
         
         // Agregar la fecha de vencimiento real como atributo temporal
@@ -93,7 +93,7 @@ class CuentaPorCobrarController extends Controller
             
             // Buscar el crédito más reciente del cliente
             $credito = Credito::where('cliente_id', $cuenta->cliente_id)
-                ->orderBy('fecha_vencimiento', 'desc')
+                ->orderByRaw('COALESCE(fecha_vencimiento_ext, fecha_vencimiento) DESC')
                 ->first();
             
             if (!$credito) {

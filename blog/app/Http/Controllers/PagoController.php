@@ -32,18 +32,22 @@ class PagoController extends Controller
             'fecha_pago' => 'required|date',
             'monto_pago' => 'required|numeric|min:0.01',
             'metodo_pago' => 'nullable|string|max:100',
-            'estado_pago' => 'required|in:pagado,pendiente',
         ]);
 
-        // 1. Registrar el pago
-        $pago = Pago::create($request->all());
+        // 1. Registrar el pago (el mutator setMontoPagoAttribute guardará en centavos)
+        $pago = new Pago();
+        $pago->credito_id = $request->credito_id;
+        $pago->fecha_pago = $request->fecha_pago;
+        $pago->monto_pago = $request->monto_pago;
+        $pago->metodo_pago = $request->metodo_pago;
+        $pago->save();
 
         // 2. Obtener el crédito con sus pagos y su cliente
         $credito = Credito::with('cliente', 'pagos')->findOrFail($request->credito_id);
 
         // 3. Calcular el total pagado y saldo pendiente
-        $totalPagado = $credito->pagos->sum('monto_pago');
-        $saldoPendiente = $credito->monto_total - $totalPagado;
+        $totalPagadoCentavos = (int) $credito->pagos()->sum('monto_pagado_centavos');
+        $saldoPendienteCentavos = max(0, $credito->monto_total_centavos - $totalPagadoCentavos);
 
         // 4. Calcular fecha de vencimiento
         $fechaVencimiento = $credito->fecha_vencimiento ?? $credito->fecha_credito->addDays(30);
@@ -52,10 +56,10 @@ class PagoController extends Controller
         CuentaPorCobrar::updateOrCreate(
             ['cliente_id' => $credito->cliente_id],
             [
-                'monto_adeudado'   => $credito->monto_total,
-                'saldo_pendiente'  => max($saldoPendiente, 0),
+                'monto_adeudado_centavos'   => $credito->monto_total_centavos,
+                'saldo_pendiente_centavos'  => $saldoPendienteCentavos,
                 'fecha_vencimiento'=> $fechaVencimiento,
-                'estado'           => $saldoPendiente <= 0 ? 'al_dia' : 'mora',
+                'estado'           => $saldoPendienteCentavos <= 0 ? 'al_dia' : 'mora',
             ]
         );
 
@@ -78,7 +82,6 @@ class PagoController extends Controller
             'fecha_pago'  => 'required|date',
             'monto_pago'  => 'required|numeric|min:0.01',
             'metodo_pago' => 'nullable|string|max:100',
-            'estado_pago' => 'required|in:pagado,pendiente',
         ]);
 
         // Obtener el monto anterior
@@ -92,14 +95,14 @@ class PagoController extends Controller
         $clienteId = $credito->cliente_id;
 
         // Recalcular saldo pendiente después del cambio
-        $totalPagado = $credito->pagos->sum('monto_pago');
-        $saldoPendiente = $credito->monto_total - $totalPagado;
+        $totalPagadoCentavos = (int) $credito->pagos()->sum('monto_pagado_centavos');
+        $saldoPendienteCentavos = max(0, $credito->monto_total_centavos - $totalPagadoCentavos);
 
         // Actualizar cuenta por cobrar
         $cuenta = CuentaPorCobrar::where('cliente_id', $clienteId)->first();
         if ($cuenta) {
-            $cuenta->saldo_pendiente = max($saldoPendiente, 0);
-            $cuenta->estado = $saldoPendiente <= 0 ? 'al_dia' : 'mora';
+            $cuenta->saldo_pendiente_centavos = $saldoPendienteCentavos;
+            $cuenta->estado = $saldoPendienteCentavos <= 0 ? 'al_dia' : 'mora';
             $cuenta->save();
         }
 
@@ -118,13 +121,13 @@ class PagoController extends Controller
 
         // Recalcular cuenta por cobrar
         $credito = Credito::with('pagos')->findOrFail($credito->id);
-        $totalPagado = $credito->pagos->sum('monto_pago');
-        $saldoPendiente = $credito->monto_total - $totalPagado;
+        $totalPagadoCentavos = (int) $credito->pagos()->sum('monto_pagado_centavos');
+        $saldoPendienteCentavos = max(0, $credito->monto_total_centavos - $totalPagadoCentavos);
 
         $cuenta = CuentaPorCobrar::where('cliente_id', $clienteId)->first();
         if ($cuenta) {
-            $cuenta->saldo_pendiente = max($saldoPendiente, 0);
-            $cuenta->estado = $saldoPendiente <= 0 ? 'al_dia' : 'mora';
+            $cuenta->saldo_pendiente_centavos = $saldoPendienteCentavos;
+            $cuenta->estado = $saldoPendienteCentavos <= 0 ? 'al_dia' : 'mora';
             $cuenta->save();
         }
 

@@ -18,7 +18,8 @@ return new class extends Migration
         $table->string('direccion')->nullable();
         $table->string('telefono')->nullable();
         $table->string('email')->nullable();
-        $table->string('limite_credito')->nullable();
+        // Límite de crédito en centavos (sin decimales)
+        $table->unsignedBigInteger('limite_credito_centavos')->nullable();
         $table->timestamps();
         
     });

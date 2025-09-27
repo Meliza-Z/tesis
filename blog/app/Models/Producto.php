@@ -12,12 +12,12 @@ class Producto extends Model
     protected $fillable = [
         'nombre',
         'descripcion',
-        'precio',
+        'precio_base_centavos',
         'categoria', // Por ahora usamos string, luego migraremos a categoria_id
     ];
 
     protected $casts = [
-        'precio' => 'decimal:2',
+        'precio_base_centavos' => 'integer',
     ];
 
     /**
@@ -74,6 +74,16 @@ class Producto extends Model
     {
         return $this->hasMany(DetalleCredito::class);
     }
-}
 
+    // Compatibilidad con atributo 'precio' en decimales
+    public function getPrecioAttribute(): float
+    {
+        return ($this->precio_base_centavos ?? 0) / 100;
+    }
+
+    public function setPrecioAttribute($value): void
+    {
+        $this->attributes['precio_base_centavos'] = (int) round(((float) $value) * 100);
+    }
+}
 

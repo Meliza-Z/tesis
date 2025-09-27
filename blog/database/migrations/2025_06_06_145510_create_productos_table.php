@@ -15,7 +15,10 @@ return new class extends Migration
         $table->id();
         $table->string('nombre');
         $table->text('descripcion')->nullable();
-        $table->decimal('precio', 10, 2);
+        // Precio base en centavos (sin decimales)
+        $table->unsignedInteger('precio_base_centavos');
+        // Categoría del producto (opcional)
+        $table->string('categoria')->nullable();
         $table->timestamps();
     });
 }

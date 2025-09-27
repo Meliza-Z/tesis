@@ -113,11 +113,11 @@
                                                    title="Editar">
                                                     <i class="fas fa-edit"></i>
                                                 </a>
-                                                <a href="{{ route('creditos.exportarPDF', $credito->id) }}" 
+                                                {{-- <a href="{{ route('creditos.exportarPDF', $credito->id) }}" 
                                                    class="btn btn-outline-secondary" 
                                                    title="Exportar PDF">
                                                     <i class="fas fa-file-pdf"></i>
-                                                </a>
+                                                </a> --}}
                                                 <button type="button" 
                                                         class="btn btn-outline-danger" 
                                                         onclick="confirmarEliminacion({{ $credito->id }})"

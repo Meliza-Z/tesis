@@ -13,10 +13,16 @@ class CuentaPorCobrar extends Model
 
     protected $fillable = [
         'cliente_id',
-        'monto_adeudado',
-        'saldo_pendiente',
+        'monto_adeudado_centavos',
+        'saldo_pendiente_centavos',
         'fecha_vencimiento',
         'estado',
+    ];
+
+    protected $casts = [
+        'monto_adeudado_centavos' => 'integer',
+        'saldo_pendiente_centavos' => 'integer',
+        'fecha_vencimiento' => 'date',
     ];
 
     public function cliente()
@@ -24,10 +30,15 @@ class CuentaPorCobrar extends Model
         return $this->belongsTo(Cliente::class);
     }
     
-    // CuentaPorCobrar.php
-public function credito()
-{
-    return $this->belongsTo(Credito::class);
-}
+    // Compatibilidad con API previa (decimales)
+    public function getMontoAdeudadoAttribute(): float
+    {
+        return ($this->monto_adeudado_centavos ?? 0) / 100;
+    }
+
+    public function getSaldoPendienteAttribute(): float
+    {
+        return ($this->saldo_pendiente_centavos ?? 0) / 100;
+    }
 
 }

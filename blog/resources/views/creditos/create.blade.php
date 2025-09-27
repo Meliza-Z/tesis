@@ -98,27 +98,32 @@
                     @enderror
                 </div>
 
-                {{-- Campo para el Monto Total --}}
-                <div class="mb-3">
-                    <label for="monto_total" class="form-label">Monto Total <span class="text-danger">*</span></label>
-                    <input type="number" step="0.01" name="monto_total" id="monto_total" class="form-control @error('monto_total') is-invalid @enderror" value="{{ old('monto_total') }}" required>
-                    @error('monto_total')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
-                </div>
-
-                {{-- Campo para el Saldo Pendiente --}}
-                <div class="mb-3">
-                    <label for="saldo_pendiente" class="form-label">Saldo Pendiente</label>
-                    <input type="number" step="0.01" name="saldo_pendiente" id="saldo_pendiente" class="form-control" value="{{ old('saldo_pendiente') }}" readonly>
+                {{-- Plazo y extensión opcional --}}
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="plazo_dias" class="form-label">Plazo (días)</label>
+                        <input type="number" name="plazo_dias" id="plazo_dias" class="form-control @error('plazo_dias') is-invalid @enderror" value="{{ old('plazo_dias', 15) }}" min="1">
+                        @error('plazo_dias')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="fecha_vencimiento_ext" class="form-label">Extensión de Vencimiento (opcional)</label>
+                        <input type="date" name="fecha_vencimiento_ext" id="fecha_vencimiento_ext" class="form-control @error('fecha_vencimiento_ext') is-invalid @enderror" value="{{ old('fecha_vencimiento_ext') }}">
+                        @error('fecha_vencimiento_ext')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
                 </div>
 
                 {{-- Campo para el Estado --}}
                 <div class="mb-3">
                     <label for="estado" class="form-label">Estado <span class="text-danger">*</span></label>
                     <select name="estado" id="estado" class="form-select @error('estado') is-invalid @enderror" required>
-                        <option value="pendiente" {{ old('estado') == 'pendiente' ? 'selected' : '' }}>Pendiente</option>
-                        <option value="pagado" {{ old('estado') == 'pagado' ? 'selected' : '' }}>Pagado</option>
+                        @php $estados = ['pendiente','activo','vencido','pagado']; @endphp
+                        @foreach($estados as $e)
+                            <option value="{{ $e }}" {{ old('estado') == $e ? 'selected' : '' }}>{{ ucfirst($e) }}</option>
+                        @endforeach
                     </select>
                     @error('estado')
                         <div class="invalid-feedback">{{ $message }}</div>
@@ -138,10 +143,5 @@
     </div>
 </div>
 
-<script>
-    // Script para autocompletar el saldo pendiente con el monto total
-    document.getElementById('monto_total').addEventListener('input', function() {
-        document.getElementById('saldo_pendiente').value = this.value;
-    });
-</script>
+<script></script>
 @endsection

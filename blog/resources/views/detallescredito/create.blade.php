@@ -84,11 +84,11 @@
                         <label for="producto_id" class="form-label">Producto</label>
                         <select id="producto_id" class="form-select @error('producto_id_temp') is-invalid @enderror">
                             <option value="">Seleccione un producto</option>
-                            @foreach ($productos as $producto)
-                                <option value="{{ $producto->id }}" data-precio="{{ $producto->precio }}" data-stock="{{ $producto->stock }}">
-                                    {{ $producto->nombre }} - ${{ number_format($producto->precio, 2) }} (Stock: {{ $producto->stock }})
-                                </option>
-                            @endforeach
+                        @foreach ($productos as $producto)
+                            <option value="{{ $producto->id }}" data-precio="{{ $producto->precio }}">
+                                {{ $producto->nombre }} - ${{ number_format($producto->precio, 2) }}
+                            </option>
+                        @endforeach
                         </select>
                         @error('producto_id_temp')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -293,7 +293,6 @@
         const productoNombre = productoNombreCompleto.split(' - ')[0].trim();
 
         const precio = parseFloat(productoSelect.options[productoSelect.selectedIndex].getAttribute('data-precio'));
-        const stockDisponible = parseInt(productoSelect.options[productoSelect.selectedIndex].getAttribute('data-stock')); // Asegúrate de que el stock esté en el data-stock
         const cantidadInput = document.getElementById('cantidad');
         const cantidad = parseInt(cantidadInput.value);
 
@@ -314,13 +313,7 @@
             cantidadInput.classList.remove('is-invalid');
         }
 
-        if (cantidad > stockDisponible) {
-            alert(`No hay suficiente stock para "${productoNombre}". Stock disponible: ${stockDisponible}.`);
-            cantidadInput.classList.add('is-invalid');
-            return;
-        } else {
-            cantidadInput.classList.remove('is-invalid');
-        }
+        // Sin validación de stock: el producto no maneja stock en el modelo actual
 
         const subtotal = precio * cantidad;
         totalGeneral += subtotal;

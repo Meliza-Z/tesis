@@ -14,9 +14,10 @@ return new class extends Migration
     Schema::create('reportes', function (Blueprint $table) {
         $table->id();
         $table->date('fecha_reporte'); // fecha en que se generó el reporte
-        $table->string('tipo_reporte'); // puede ser: ventas_credito, pagos, cuentas_vencidas, estado_general
+        $table->string('tipo_reporte'); // puede ser: ventas_credito, pagos, cuentas_vencidas, estado_general, etc.
         $table->integer('cantidad_registros'); // número total de registros incluidos en el reporte
-        $table->decimal('monto_total', 12, 2)->default(0); // suma total (ventas o pagos, según reporte)
+        // Monto total en centavos (sin decimales)
+        $table->unsignedBigInteger('monto_total_centavos')->default(0);
         $table->text('descripcion')->nullable(); // descripción general del reporte
         $table->json('detalles')->nullable(); // datos adicionales en formato JSON (opcional)
         $table->timestamps();
@@ -29,6 +30,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('reporte');
+        Schema::dropIfExists('reportes');
     }
 };

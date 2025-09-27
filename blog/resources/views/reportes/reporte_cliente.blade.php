@@ -227,8 +227,7 @@
             <tr>
                 <th class="text-center">Fecha de Pago</th>
                 <th class="text-right">Monto ($)</th>
-                <th class="text-center">Método de Pago</th> {{-- Asumiendo que existe $pago->metodo_pago --}}
-                <th class="text-center">Estado del Pago</th> {{-- Asumiendo que existe $pago->estado_pago --}}
+                <th class="text-center">Método de Pago</th>
             </tr>
         </thead>
         <tbody>
@@ -236,8 +235,7 @@
                 <tr>
                     <td class="text-center">{{ \Carbon\Carbon::parse($pago->fecha_pago)->format('d/m/Y') }}</td>
                     <td class="text-right">${{ number_format($pago->monto_pago, 2) }}</td>
-                    <td class="text-center">{{ ucfirst($pago->metodo_pago ?? 'N/A') }}</td> 
-                    <td class="text-center">{{ ucfirst($pago->estado_pago ?? 'N/A') }}</td>
+                    <td class="text-center">{{ ucfirst($pago->metodo_pago ?? 'N/A') }}</td>
                 </tr>
             @empty
                 <tr>
@@ -249,7 +247,7 @@
             <tr class="total-row">
                 <th colspan="1" class="text-right">Total Pagado:</th>
                 <td class="text-right">${{ number_format($totalPagado, 2) }}</td>
-                <th colspan="2"></th> {{-- Espacios vacíos para alinear las columnas --}}
+                <th colspan="1"></th>
             </tr>
         </tfoot>
     </table>

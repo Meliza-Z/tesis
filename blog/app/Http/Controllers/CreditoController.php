@@ -23,13 +23,13 @@ class CreditoController extends Controller
         // Aplicar el filtro de búsqueda si el parámetro 'search' está presente
         if ($request->has('search') && $request->search != '') {
             $searchTerm = $request->search;
-            $query->whereHas('cliente', function ($q) use ($searchTerm) {
-                $q->where('nombre', 'LIKE', '%' . $searchTerm . '%');
-            })
-            ->orWhere('codigo', 'LIKE', '%' . $searchTerm . '%')
-            ->orWhere('estado', 'LIKE', '%' . $searchTerm . '%')
-            ->orWhereRaw('CAST(monto_total AS CHAR) LIKE ?', ['%' . $searchTerm . '%'])
-            ->orWhereRaw('CAST(saldo_pendiente AS CHAR) LIKE ?', ['%' . $searchTerm . '%']);
+            $query->where(function ($q) use ($searchTerm) {
+                $q->whereHas('cliente', function ($qq) use ($searchTerm) {
+                    $qq->where('nombre', 'LIKE', '%' . $searchTerm . '%');
+                })
+                ->orWhere('codigo', 'LIKE', '%' . $searchTerm . '%')
+                ->orWhere('estado', 'LIKE', '%' . $searchTerm . '%');
+            });
         }
 
         $creditos = $query->get();
@@ -72,8 +72,9 @@ class CreditoController extends Controller
             'cliente_id' => 'required|exists:clientes,id',
             'fecha_credito' => 'required|date',
             'fecha_vencimiento' => 'required|date|after_or_equal:fecha_credito',
-            'monto_total' => 'required|numeric|min:0.01',
-            'estado' => 'nullable|in:pendiente,pagado',
+            'plazo_dias' => 'nullable|integer|min:1',
+            'fecha_vencimiento_ext' => 'nullable|date|after_or_equal:fecha_vencimiento',
+            'estado' => 'nullable|in:pendiente,activo,vencido,pagado',
         ]);
 
         $credito = new Credito();
@@ -81,8 +82,8 @@ class CreditoController extends Controller
         $credito->codigo = $this->generarCodigoUnico();
         $credito->fecha_credito = $request->fecha_credito;
         $credito->fecha_vencimiento = $request->fecha_vencimiento;
-        $credito->monto_total = $request->monto_total;
-        $credito->saldo_pendiente = $request->monto_total; // Inicialmente igual al monto total
+        if ($request->filled('plazo_dias')) $credito->plazo_dias = $request->integer('plazo_dias');
+        if ($request->filled('fecha_vencimiento_ext')) $credito->fecha_vencimiento_ext = $request->fecha_vencimiento_ext;
         $credito->estado = $request->estado ?? 'pendiente';
         $credito->save();
 
@@ -108,18 +109,13 @@ class CreditoController extends Controller
             'codigo' => 'required|string|unique:creditos,codigo,' . $credito->id,
             'fecha_credito' => 'required|date',
             'fecha_vencimiento' => 'required|date|after_or_equal:fecha_credito',
-            'monto_total' => 'required|numeric|min:0.01',
-            'saldo_pendiente' => 'required|numeric|min:0|lte:monto_total',
-            'estado' => 'required|in:pendiente,pagado',
+            'plazo_dias' => 'nullable|integer|min:1',
+            'fecha_vencimiento_ext' => 'nullable|date|after_or_equal:fecha_vencimiento',
+            'estado' => 'required|in:pendiente,activo,vencido,pagado',
         ]);
 
-        // Si el estado cambia a 'pagado', el saldo pendiente debe ser 0
-        if ($request->estado === 'pagado') {
-            $request->merge(['saldo_pendiente' => 0]);
-        }
-
-        $credito->update($request->all());
-
+        $credito->update($request->only(['cliente_id','codigo','fecha_credito','fecha_vencimiento','plazo_dias','fecha_vencimiento_ext','estado']));
+        
         return redirect()->route('creditos.index')->with('success', 'Crédito actualizado correctamente.');
     }
 
@@ -154,15 +150,7 @@ class CreditoController extends Controller
      */
     public function actualizarSaldoPendiente(Credito $credito)
     {
-        // Calcular el total de pagos realizados
-        $totalPagos = $credito->pagos()->sum('monto') ?? 0;
-        
-        // Calcular el saldo pendiente
-        $saldoPendiente = $credito->monto_total - $totalPagos;
-        
-        // Actualizar el saldo y estado
-        $credito->saldo_pendiente = max(0, $saldoPendiente);
-        $credito->estado = $credito->saldo_pendiente <= 0 ? 'pagado' : 'pendiente';
-        $credito->save();
+        // Recalcular estado basándose en pagos y fechas
+        $credito->recalcularEstado();
     }
 }

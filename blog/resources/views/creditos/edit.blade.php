@@ -36,15 +36,22 @@
         </div>
 
         <div class="mb-3">
-            <label for="monto_total" class="form-label">Monto Total</label>
-            <input type="number" step="0.01" name="monto_total" id="monto_total" class="form-control" value="{{ $credito->monto_total }}" required>
+            <label for="plazo_dias" class="form-label">Plazo (días)</label>
+            <input type="number" name="plazo_dias" id="plazo_dias" class="form-control" value="{{ old('plazo_dias', $credito->plazo_dias ?? 15) }}" min="1">
+        </div>
+
+        <div class="mb-3">
+            <label for="fecha_vencimiento_ext" class="form-label">Extensión de Vencimiento (opcional)</label>
+            <input type="date" name="fecha_vencimiento_ext" id="fecha_vencimiento_ext" class="form-control" value="{{ old('fecha_vencimiento_ext', $credito->fecha_vencimiento_ext) }}">
         </div>
 
         <div class="mb-3">
             <label for="estado" class="form-label">Estado</label>
             <select name="estado" id="estado" class="form-control" required>
-                <option value="pendiente" {{ $credito->estado == 'pendiente' ? 'selected' : '' }}>Pendiente</option>
-                <option value="pagado" {{ $credito->estado == 'pagado' ? 'selected' : '' }}>Pagado</option>
+                @php $estados = ['pendiente','activo','vencido','pagado']; @endphp
+                @foreach($estados as $e)
+                    <option value="{{ $e }}" {{ $credito->estado == $e ? 'selected' : '' }}>{{ ucfirst($e) }}</option>
+                @endforeach
             </select>
         </div>
 

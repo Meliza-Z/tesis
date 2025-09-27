@@ -16,8 +16,9 @@ return new class extends Migration
             $table->foreignId('credito_id')->constrained('creditos')->onDelete('cascade');
             $table->foreignId('producto_id')->constrained('productos')->onDelete('cascade');
             $table->integer('cantidad');
-            $table->decimal('precio_unitario', 10, 2);
-            $table->decimal('subtotal', 10, 2);
+            // Valores en centavos (sin decimales)
+            $table->unsignedInteger('precio_unitario_centavos');
+            $table->unsignedBigInteger('subtotal_centavos');
             $table->text('observaciones')->nullable();
             $table->timestamps();
             

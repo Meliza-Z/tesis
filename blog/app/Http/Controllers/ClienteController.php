@@ -32,7 +32,16 @@ class ClienteController extends Controller
             'limite_credito' => 'nullable|numeric|min:0',
         ]);
 
-        Cliente::create($request->all());
+        $cliente = new Cliente();
+        $cliente->nombre = $request->nombre;
+        $cliente->cedula = $request->cedula;
+        $cliente->direccion = $request->direccion;
+        $cliente->telefono = $request->telefono;
+        $cliente->email = $request->email;
+        if ($request->filled('limite_credito')) {
+            $cliente->limite_credito = $request->limite_credito; // mutator -> _centavos
+        }
+        $cliente->save();
 
         return redirect()->route('clientes.index')->with('success', 'Cliente creado correctamente.');
     }
@@ -61,7 +70,15 @@ class ClienteController extends Controller
             'limite_credito' => 'nullable|numeric|min:0',
         ]);
 
-        $cliente->update($request->all());
+        $cliente->nombre = $request->nombre;
+        $cliente->cedula = $request->cedula;
+        $cliente->direccion = $request->direccion;
+        $cliente->telefono = $request->telefono;
+        $cliente->email = $request->email;
+        if ($request->filled('limite_credito')) {
+            $cliente->limite_credito = $request->limite_credito;
+        }
+        $cliente->save();
 
         return redirect()->route('clientes.index')->with('success', 'Cliente actualizado correctamente.');
     }

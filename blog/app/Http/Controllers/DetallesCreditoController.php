@@ -12,73 +12,71 @@ class DetallesCreditoController extends Controller
 {
     public function index(Request $request)
     {
-        // Obtener todos los clientes con sus créditos pendientes
-        $clientes = Cliente::with(['detallesCredito' => function($query) {
-            $query->pendientes()
-                  ->with('producto')
-                  ->orderBy('fecha_vencimiento', 'asc');
-        }])
-        ->whereHas('detallesCredito', function($query) {
-            $query->pendientes();
-        })
-        ->get();
+        $detalles = DetalleCredito::with(['producto', 'credito.cliente'])->get();
 
-        return view('detallescredito.index', compact('clientes'));
+        $detallesPorFecha = $detalles->map(function ($d) {
+            $fecha = optional($d->credito)->fecha_credito?->toDateString() ?? $d->created_at->toDateString();
+            return (object) [
+                'id' => $d->id,
+                'fecha' => $fecha,
+                'cliente' => optional(optional($d->credito)->cliente)->nombre ?? 'N/D',
+                'producto' => optional($d->producto)->nombre ?? 'N/D',
+                'cantidad' => $d->cantidad,
+                'precio_unitario' => $d->precio_unitario,
+            ];
+        })->groupBy('fecha');
+
+        return view('detallescredito.index', compact('detallesPorFecha'));
     }
 
     public function create()
     {
-        $clientes = Cliente::all();
+        $creditos = \App\Models\Credito::with('cliente')->get();
         $productos = Producto::all();
-        return view('detallescredito.create', compact('clientes', 'productos'));
+        return view('detallescredito.create', compact('creditos', 'productos'));
     }
 
     public function store(Request $request)
     {
         $request->validate([
-            'cliente_id' => 'required|exists:clientes,id',
+            'credito_id' => 'required|exists:creditos,id',
             'productos' => 'required|array|min:1',
             'productos.*.producto_id' => 'required|exists:productos,id',
             'productos.*.cantidad' => 'required|integer|min:1',
             'productos.*.precio_unitario' => 'required|numeric|min:0',
-            'fecha_vencimiento' => 'required|date|after:today',
+            'observaciones' => 'nullable|string',
         ]);
 
-        $cliente = Cliente::find($request->cliente_id);
-        $numeroCredito = 'CRED-' . str_pad($cliente->detallesCredito()->count() + 1, 3, '0', STR_PAD_LEFT);
+        $credito = \App\Models\Credito::with('cliente')->findOrFail($request->credito_id);
+
+        // Validación de límite de crédito (centavos)
+        $actualTotalCentavos = $credito->monto_total_centavos;
+        $adicionalCentavos = 0;
+        foreach ($request->productos as $detalle) {
+            $adicionalCentavos += (int) round(((float) $detalle['precio_unitario']) * 100) * (int) $detalle['cantidad'];
+        }
+        $expuestoCentavos = $credito->cliente->total_pendiente_centavos;
+        $limiteCentavos = (int) ($credito->cliente->limite_credito_centavos ?? 0);
+        if ($expuestoCentavos - $actualTotalCentavos + ($actualTotalCentavos + $adicionalCentavos) > $limiteCentavos) {
+            return back()->withErrors(['credito_id' => 'El crédito excede el límite disponible del cliente.'])->withInput();
+        }
 
         foreach ($request->productos as $detalle) {
-            $producto = Producto::find($detalle['producto_id']);
-
-            // Verificar stock
-            if ($producto->stock < $detalle['cantidad']) {
-                return redirect()->back()->with('error', 'Stock insuficiente para el producto: ' . $producto->nombre);
-            }
-
-            // Verificar límite de crédito
-            $subtotal = $detalle['cantidad'] * $detalle['precio_unitario'];
-            if (($cliente->total_pendiente + $subtotal) > $cliente->limite_credito) {
-                return redirect()->back()->with('error', 'El crédito excede el límite disponible del cliente.');
-            }
-
-            // Actualizar stock
-            $producto->stock -= $detalle['cantidad'];
-            $producto->save();
-
-            // Crear detalle de crédito
             DetalleCredito::create([
-                'cliente_id' => $request->cliente_id,
-                'numero_credito' => $numeroCredito,
+                'credito_id' => $credito->id,
                 'producto_id' => $detalle['producto_id'],
-                'cantidad' => $detalle['cantidad'],
-                'precio_unitario' => $detalle['precio_unitario'],
-                'subtotal' => $subtotal,
-                'fecha_vencimiento' => $request->fecha_vencimiento,
-                'observaciones' => $request->observaciones
+                'cantidad' => (int) $detalle['cantidad'],
+                'precio_unitario_centavos' => (int) round(((float) $detalle['precio_unitario']) * 100),
+                'subtotal_centavos' => (int) round(((float) $detalle['precio_unitario']) * 100) * (int) $detalle['cantidad'],
+                'observaciones' => $request->observaciones,
             ]);
         }
 
-        return redirect()->route('detalle_credito.index')->with('success', 'Crédito registrado correctamente.');
+        // Recalcular estado tras agregar detalles
+        $credito->refresh();
+        $credito->recalcularEstado();
+
+        return redirect()->route('detalle_credito.index')->with('success', 'Detalles agregados al crédito correctamente.');
     }
 
     // Método para mostrar créditos de un cliente específico

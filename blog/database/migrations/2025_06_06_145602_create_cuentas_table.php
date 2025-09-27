@@ -14,10 +14,13 @@ return new class extends Migration
     Schema::create('cuentas_por_cobrar', function (Blueprint $table) {
         $table->id();
         $table->foreignId('cliente_id')->constrained('clientes')->onDelete('cascade');
-        $table->decimal('monto_adeudado', 10, 2); 
-        $table->decimal('saldo_pendiente', 10, 2); 
+        // Montos en centavos (sin decimales)
+        $table->unsignedBigInteger('monto_adeudado_centavos'); 
+        $table->unsignedBigInteger('saldo_pendiente_centavos'); 
         $table->date('fecha_vencimiento'); 
         $table->enum('estado', ['al_dia', 'mora'])->default('al_dia'); 
+        $table->dateTime('proximo_recordatorio_at')->nullable();
+        $table->index(['cliente_id']);
         $table->timestamps();
     });
 }

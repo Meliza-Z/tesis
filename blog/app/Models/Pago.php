@@ -12,9 +12,13 @@ class Pago extends Model
     protected $fillable = [
         'credito_id',
         'fecha_pago',
-        'monto_pago',
+        'monto_pagado_centavos',
         'metodo_pago',
-        'estado_pago',
+    ];
+
+    protected $casts = [
+        'monto_pagado_centavos' => 'integer',
+        'fecha_pago' => 'date',
     ];
 
     
@@ -23,5 +27,15 @@ class Pago extends Model
     return $this->belongsTo(Credito::class);
 }
 
-}
+    // Compatibilidad con API previa
+    public function getMontoPagoAttribute(): float
+    {
+        return ($this->monto_pagado_centavos ?? 0) / 100;
+    }
 
+    public function setMontoPagoAttribute($value): void
+    {
+        $this->attributes['monto_pagado_centavos'] = (int) round(((float) $value) * 100);
+    }
+
+}

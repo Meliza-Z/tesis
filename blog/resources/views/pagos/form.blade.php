@@ -110,16 +110,7 @@
                     </div>
                 </div>
 
-                <div class="mb-3">
-                    <label for="estado_pago" class="form-label fw-bold">Estado del Pago <span class="text-danger">*</span></label>
-                    <select name="estado_pago" id="estado_pago" class="form-control form-control-sm" required>
-                        <option value="pendiente" {{ old('estado_pago', $pago->estado_pago) == 'pendiente' ? 'selected' : '' }}>Pendiente</option>
-                        <option value="pagado" {{ old('estado_pago', $pago->estado_pago) == 'pagado' ? 'selected' : '' }}>Pagado</option>
-                    </select>
-                    @error('estado_pago')
-                        <div class="text-danger small mt-1">{{ $message }}</div>
-                    @enderror
-                </div>
+                
 
                 <hr class="my-4">
 
@@ -135,27 +126,5 @@
 </div>
 
 @push('scripts')
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const metodoPago = document.getElementById('metodo_pago');
-        const estadoPago = document.getElementById('estado_pago');
-
-        function actualizarEstado() {
-            // Deshabilita el estado de pago si el método es Efectivo, Transferencia o Tarjeta
-            if (['Efectivo', 'Transferencia', 'Tarjeta'].includes(metodoPago.value)) {
-                estadoPago.value = 'pagado'; // Asegura que sea 'pagado'
-                estadoPago.setAttribute('disabled', true);
-            } else {
-                estadoPago.removeAttribute('disabled');
-                // Si el método no está seleccionado o es desconocido, no forzamos el estado.
-                // Podrías ponerlo en 'pendiente' si lo prefieres: estadoPago.value = 'pendiente';
-            }
-        }
-
-        metodoPago.addEventListener('change', actualizarEstado);
-
-        // Ejecutar al cargar la página para aplicar el estado inicial
-        actualizarEstado();
-    });
-</script>
+<script></script>
 @endpush
