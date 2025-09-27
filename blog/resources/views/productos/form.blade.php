@@ -97,14 +97,12 @@
                         
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="precio" class="form-label">Precio <span class="text-danger">*</span></label>
-                                <div class="input-group">
-                                    <span class="input-group-text">$</span>
-                                    <input type="number" name="precio" id="precio" step="0.01" class="form-control @error('precio') is-invalid @enderror" value="{{ old('precio', $producto->precio ?? '') }}" required>
-                                </div>
-                                @error('precio')
+                                <label for="precio_base_centavos" class="form-label">Precio (centavos) <span class="text-danger">*</span></label>
+                                <input type="number" name="precio_base_centavos" id="precio_base_centavos" step="1" min="0" class="form-control @error('precio_base_centavos') is-invalid @enderror" value="{{ old('precio_base_centavos', $producto->precio_base_centavos ?? '') }}" required>
+                                @error('precio_base_centavos')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
+                                <small class="text-muted">Ej.: 1000 = $10.00</small>
                             </div>
                         </div>
                     </div>
@@ -309,7 +307,7 @@
         form.addEventListener('submit', function(e) {
             const categoria = categoriaSelect.value;
             const nombre = document.getElementById('nombre').value.trim();
-            const precio = document.getElementById('precio').value;
+            const precio = document.getElementById('precio_base_centavos').value;
 
             if (!categoria) {
                 e.preventDefault();
@@ -325,10 +323,10 @@
                 return false;
             }
 
-            if (!precio || precio <= 0) {
+            if (precio === '' || isNaN(parseInt(precio)) || parseInt(precio) < 0) {
                 e.preventDefault();
-                alert('Por favor, ingresa un precio válido.');
-                document.getElementById('precio').focus();
+                alert('Por favor, ingresa un precio válido en centavos.');
+                document.getElementById('precio_base_centavos').focus();
                 return false;
             }
         });

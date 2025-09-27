@@ -128,7 +128,7 @@
                                                 </div>
                                             </div>
                                             <div class="d-flex align-items-center gap-2">
-                                                <span class="badge bg-light text-dark fw-bold">${{ number_format($producto->precio, 2) }}</span>
+                                                <span class="badge bg-light text-dark fw-bold">${{ number_format(($producto->precio_base_centavos ?? 0)/100, 2) }}</span>
                                                 <div class="btn-group btn-group-sm">
                                                     <a href="{{ route('productos.edit', $producto) }}" 
                                                        class="btn btn-outline-warning btn-sm" 
