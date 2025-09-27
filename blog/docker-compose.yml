@@ -1,0 +1,83 @@
+services:
+    app:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        container_name: laravel_app
+        restart: unless-stopped
+        working_dir: /var/www/html
+        ports:
+            - "8000:80"
+        volumes:
+            - .:/var/www/html
+            - ./docker/php.ini:/usr/local/etc/php/conf.d/local.ini
+        depends_on:
+            - db
+        networks:
+            - laravel
+        environment:
+            - DB_HOST=db
+            - DB_DATABASE=blog
+            - DB_USERNAME=laravel_user
+            - DB_PASSWORD=laravel_password
+
+    db:
+        image: mysql:8.0
+        container_name: laravel_db
+        restart: unless-stopped
+        environment:
+            MYSQL_DATABASE: blog
+            MYSQL_USER: laravel_user
+            MYSQL_PASSWORD: laravel_password
+            MYSQL_ROOT_PASSWORD: root_password
+        ports:
+            - "3306:3306"
+        volumes:
+            - mysql_data:/var/lib/mysql
+            - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
+        networks:
+            - laravel
+
+    phpmyadmin:
+        image: phpmyadmin/phpmyadmin
+        container_name: laravel_phpmyadmin
+        restart: unless-stopped
+        ports:
+            - "8080:80"
+        environment:
+            PMA_HOST: db
+            PMA_USER: root
+            PMA_PASSWORD: root_password
+        depends_on:
+            - db
+        networks:
+            - laravel
+
+    redis:
+        image: redis:7-alpine
+        container_name: laravel_redis
+        restart: unless-stopped
+        ports:
+            - "6379:6379"
+        volumes:
+            - redis_data:/data
+        networks:
+            - laravel
+
+    mailhog:
+        image: mailhog/mailhog
+        container_name: laravel_mailhog
+        restart: unless-stopped
+        ports:
+            - "8025:8025"
+            - "1025:1025"
+        networks:
+            - laravel
+
+networks:
+    laravel:
+        driver: bridge
+
+volumes:
+    mysql_data:
+    redis_data:
