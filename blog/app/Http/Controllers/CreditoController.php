@@ -153,4 +153,27 @@ class CreditoController extends Controller
         // Recalcular estado basándose en pagos y fechas
         $credito->recalcularEstado();
     }
+
+    /**
+     * Exporta el crédito a PDF
+     *
+     * @param Credito $credito
+     * @return \Illuminate\Http\Response
+     */
+    public function exportarPDF(Credito $credito)
+    {
+        // Cargar las relaciones necesarias para el PDF
+        $credito->load(['cliente', 'pagos', 'detalles.producto']);
+
+        // Generar el PDF usando la vista
+        $pdf = Pdf::loadView('creditos.pdf', compact('credito'))
+                  ->setPaper('a4', 'portrait')
+                  ->setOptions(['isHtml5ParserEnabled' => true, 'isRemoteEnabled' => true]);
+
+        // Nombre del archivo
+        $filename = 'credito_' . $credito->codigo . '_' . date('Y-m-d') . '.pdf';
+
+        // Retornar el PDF para descarga
+        return $pdf->download($filename);
+    }
 }

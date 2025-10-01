@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <title>Crédito #{{ $credito->id }}</title>
@@ -10,22 +11,26 @@
             margin: 20px;
             color: #333;
         }
+
         .header {
             text-align: center;
             margin-bottom: 30px;
             border-bottom: 1px solid #eee;
             padding-bottom: 15px;
         }
+
         .header h1 {
             margin: 0;
             color: #007bff;
             font-size: 20px;
         }
+
         .header p {
             margin: 2px 0;
             font-size: 10px;
             color: #777;
         }
+
         .section-title {
             font-size: 16px;
             color: #007bff;
@@ -34,77 +39,98 @@
             border-bottom: 1px solid #eee;
             padding-bottom: 5px;
         }
+
         .info-grid {
-            display: table; /* Usar display table para simular columnas en PDF */
+            display: table;
+            /* Usar display table para simular columnas en PDF */
             width: 100%;
             margin-bottom: 15px;
         }
+
         .info-row {
             display: table-row;
         }
-        .info-label, .info-value {
+
+        .info-label,
+        .info-value {
             display: table-cell;
             padding: 4px 0;
         }
+
         .info-label {
             font-weight: bold;
-            width: 150px; /* Ancho fijo para las etiquetas */
+            width: 150px;
+            /* Ancho fijo para las etiquetas */
             color: #555;
         }
+
         table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 15px;
             margin-bottom: 20px;
         }
-        th, td {
+
+        th,
+        td {
             border: 1px solid #ddd;
             padding: 8px;
             text-align: left;
         }
+
         th {
             background-color: #f8f8f8;
             font-weight: bold;
             color: #333;
             text-align: center;
         }
+
         td {
             vertical-align: top;
         }
+
         .text-right {
             text-align: right;
         }
+
         .text-center {
             text-align: center;
         }
+
         .total-row th {
             background-color: #e9ecef;
             color: #000;
             font-size: 13px;
         }
+
         .total-row td {
             background-color: #e9ecef;
             color: #000;
             font-size: 13px;
             font-weight: bold;
         }
+
         .summary-box {
             border: 1px solid #007bff;
             padding: 15px;
             background-color: #eaf6ff;
             margin-top: 20px;
         }
+
         .summary-item {
             display: flex;
             justify-content: space-between;
             margin-bottom: 5px;
         }
+
         .summary-item strong {
             color: #007bff;
         }
+
         .summary-item span {
             font-weight: bold;
         }
+
         .summary-item.total {
             font-size: 16px;
             font-weight: bold;
@@ -112,6 +138,7 @@
             padding-top: 10px;
             margin-top: 10px;
         }
+
         .status-badge {
             display: inline-block;
             padding: 3px 8px;
@@ -120,12 +147,31 @@
             font-weight: bold;
             color: #fff;
         }
-        .status-activo { background-color: #28a745; } /* green */
-        .status-inactivo { background-color: #dc3545; } /* red */
-        .status-pagado { background-color: #007bff; } /* blue */
-        .status-pendiente { background-color: #ffc107; color: #333; } /* yellow */
+
+        .status-activo {
+            background-color: #28a745;
+        }
+
+        /* green */
+        .status-inactivo {
+            background-color: #dc3545;
+        }
+
+        /* red */
+        .status-pagado {
+            background-color: #007bff;
+        }
+
+        /* blue */
+        .status-pendiente {
+            background-color: #ffc107;
+            color: #333;
+        }
+
+        /* yellow */
     </style>
 </head>
+
 <body>
     <div class="header">
         <h1>D'Margarita's</h1>
@@ -155,7 +201,7 @@
         </div>
         <div class="info-row">
             <span class="info-label">Plazo:</span>
-            <span class="info-value">{{ $credito->plazo }} días</span>
+            <span class="info-value">{{ $credito->plazo_dias ?? $credito->dias_plazo }} días</span>
         </div>
         <div class="info-row">
             <span class="info-label">Monto Total del Crédito:</span>
@@ -175,29 +221,27 @@
     </div>
 
     <div class="section-title">Pagos Realizados</div>
-    @if($credito->pagos->isNotEmpty())
+    @if ($credito->pagos->isNotEmpty())
         <table>
             <thead>
                 <tr>
                     <th class="text-center">Fecha de Pago</th>
                     <th class="text-center">Monto ($)</th>
                     <th class="text-center">Método de Pago</th>
-                    <th class="text-center">Estado del Pago</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach($credito->pagos as $pago)
+                @foreach ($credito->pagos as $pago)
                     <tr>
                         <td class="text-center">{{ \Carbon\Carbon::parse($pago->fecha_pago)->format('d/m/Y') }}</td>
                         <td class="text-right">${{ number_format($pago->monto_pago, 2) }}</td>
-                        <td class="text-center">{{ ucfirst($pago->metodo_pago) }}</td>
-                        <td class="text-center">{{ ucfirst($pago->estado_pago) }}</td>
+                        <td class="text-center">{{ ucfirst($pago->metodo_pago ?? 'N/A') }}</td>
                     </tr>
                 @endforeach
             </tbody>
             <tfoot>
                 <tr class="total-row">
-                    <th colspan="1" class="text-right">Total Pagado:</th>
+                    <th colspan="2" class="text-right">Total Pagado:</th>
                     <td class="text-right">${{ number_format($credito->pagos->sum('monto_pago'), 2) }}</td>
                     <th colspan="2"></th>
                 </tr>
@@ -208,7 +252,7 @@
     @endforelse
 
     <div class="section-title">Productos en Crédito</div>
-    @if($credito->detalles->isNotEmpty())
+    @if ($credito->detalles->isNotEmpty())
         <table>
             <thead>
                 <tr>
@@ -220,7 +264,7 @@
             </thead>
             <tbody>
                 @php $totalProductos = 0; @endphp
-                @foreach($credito->detalles as $detalle)
+                @foreach ($credito->detalles as $detalle)
                     @php
                         $subtotal = $detalle->cantidad * $detalle->precio_unitario;
                         $totalProductos += $subtotal;
@@ -260,4 +304,5 @@
     </div>
 
 </body>
+
 </html>

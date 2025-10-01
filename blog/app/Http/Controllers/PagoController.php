@@ -63,7 +63,8 @@ class PagoController extends Controller
             ]
         );
 
-        return redirect()->route('pagos.index')->with('success', 'Pago registrado y cuenta por cobrar actualizada.');
+    return redirect()->route('cuenta_cobrar.credito', ['credito' => $credito->id])
+             ->with('success', 'Pago registrado y cuenta por cobrar actualizada.');
     }
 
     public function edit(Pago $pago)
