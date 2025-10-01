@@ -121,6 +121,133 @@ class ReporteController extends Controller
         return view('reportes.verificar_datos', compact('creditos'));
     }
 
+    /**
+     * Reporte de créditos vencidos
+     */
+    public function creditosVencidos()
+    {
+        // Obtener todos los créditos vencidos con información del cliente
+        $creditosVencidos = Credito::with(['cliente', 'detalles.producto', 'pagos'])
+            ->vencidos()  // usando el scope definido en el modelo
+            ->orderBy('fecha_vencimiento', 'asc')
+            ->get();
+
+        // Calcular estadísticas usando accessors del modelo
+        $totalCreditos = $creditosVencidos->count();
+        $montoTotalVencido = $creditosVencidos->sum(function($credito) {
+            return $credito->monto_total; // usar el accessor
+        });
+        $saldoTotalPendiente = $creditosVencidos->sum(function($credito) {
+            return $credito->saldo_pendiente; // usar el accessor
+        });
+        $promedioVencimiento = $totalCreditos > 0 ? $montoTotalVencido / $totalCreditos : 0;
+
+        // Calcular días vencidos para cada crédito
+        $creditosConDias = $creditosVencidos->map(function ($credito) {
+            $fechaVencimiento = $credito->fecha_vencimiento_ext ?? $credito->fecha_vencimiento;
+            $diasVencido = now()->diffInDays($fechaVencimiento);
+            $credito->dias_vencido = $diasVencido;
+            return $credito;
+        });
+
+        // Generar PDF
+        $pdf = Pdf::loadView('reportes.creditos_vencidos', [
+            'creditosVencidos' => $creditosConDias,
+            'totalCreditos' => $totalCreditos,
+            'montoTotalVencido' => $montoTotalVencido,
+            'saldoTotalPendiente' => $saldoTotalPendiente,
+            'promedioVencimiento' => $promedioVencimiento,
+            'fechaReporte' => now()->format('d/m/Y H:i'),
+        ]);
+
+        return $pdf->download('creditos_vencidos_' . now()->format('Y-m-d') . '.pdf');
+    }
+
+    /**
+     * Reporte de resumen de cartera (tipo cierre de caja)
+     */
+    public function resumenCartera()
+    {
+        // Obtener todos los créditos activos
+        $creditosActivos = Credito::with(['cliente', 'pagos'])
+            ->where('estado', '!=', 'pagado')
+            ->get();
+
+        // Calcular estadísticas generales
+        $totalCreditos = Credito::count();
+        $creditosPagados = Credito::where('estado', 'pagado')->count();
+        $creditosPendientes = Credito::where('estado', 'pendiente')->count();
+        $creditosVencidos = Credito::vencidos()->count();
+
+        // Montos totales usando accessors y relaciones
+        $todosCreditos = Credito::with(['detalles', 'pagos'])->get();
+        $montoTotalCartera = $todosCreditos->sum(function($credito) {
+            return $credito->monto_total; // usar el accessor
+        });
+        // Sumar desde la columna real y convertir de centavos a decimales
+        $montoTotalPagado = \App\Models\Pago::sum('monto_pagado_centavos') / 100;
+        $saldoPendienteTotal = $creditosActivos->sum(function($credito) {
+            return $credito->saldo_pendiente; // usar el accessor
+        });
+
+        // Estadísticas por estado usando accessors
+        $montoPorEstado = [
+            'activos' => $todosCreditos->where('estado', 'activo')->sum(function($credito) {
+                return $credito->monto_total;
+            }),
+            'pendientes' => $todosCreditos->where('estado', 'pendiente')->sum(function($credito) {
+                return $credito->monto_total;
+            }),
+            'vencidos' => $todosCreditos->filter(function($credito) {
+                $vence = $credito->fecha_vencimiento_ext ?? $credito->fecha_vencimiento;
+                return $vence->isPast() && $credito->estado !== 'pagado';
+            })->sum(function($credito) {
+                return $credito->monto_total;
+            }),
+            'pagados' => $todosCreditos->where('estado', 'pagado')->sum(function($credito) {
+                return $credito->monto_total;
+            }),
+        ];
+
+        // Top 10 clientes con mayor deuda usando collection
+        $creditosPorCliente = $todosCreditos->where('estado', '!=', 'pagado')
+            ->groupBy('cliente_id')
+            ->map(function($creditos) {
+                $deudaTotal = $creditos->sum(function($credito) {
+                    return $credito->saldo_pendiente;
+                });
+                return (object)[
+                    'cliente_id' => $creditos->first()->cliente_id,
+                    'cliente' => $creditos->first()->cliente,
+                    'deuda_total' => $deudaTotal,
+                ];
+            })
+            ->filter(function($cliente) {
+                return $cliente->deuda_total > 0;
+            })
+            ->sortByDesc('deuda_total')
+            ->take(10);
+        
+        $clientesConDeuda = $creditosPorCliente->values();
+
+        // Generar PDF
+        $pdf = Pdf::loadView('reportes.resumen_cartera', [
+            'totalCreditos' => $totalCreditos,
+            'creditosPagados' => $creditosPagados,
+            'creditosPendientes' => $creditosPendientes,
+            'creditosVencidos' => $creditosVencidos,
+            'montoTotalCartera' => $montoTotalCartera,
+            'montoTotalPagado' => $montoTotalPagado,
+            'saldoPendienteTotal' => $saldoPendienteTotal,
+            'montoPorEstado' => $montoPorEstado,
+            'clientesConDeuda' => $clientesConDeuda,
+            'fechaReporte' => now()->format('d/m/Y H:i'),
+            'porcentajePagado' => $montoTotalCartera > 0 ? ($montoTotalPagado / $montoTotalCartera) * 100 : 0,
+        ]);
+
+        return $pdf->download('resumen_cartera_' . now()->format('Y-m-d') . '.pdf');
+    }
+
     // Método privado para evitar duplicación de código
     private function calcularTotalesCredito($credito)
     {

@@ -68,6 +68,13 @@ Route::middleware('auth')->group(function () {
     // 🔹 RUTA PARA DEBUGGING
     Route::get('/verificar-datos', [ReporteController::class, 'verificarDatos'])->name('verificar.datos');
     
+    // 🔹 NUEVOS REPORTES PERSONALIZADOS
+    // Reporte de créditos vencidos
+    Route::get('/reporte-creditos-vencidos', [ReporteController::class, 'creditosVencidos'])->name('reporte.creditos.vencidos');
+    
+    // Reporte de resumen de cartera (tipo cierre de caja)
+    Route::get('/reporte-resumen-cartera', [ReporteController::class, 'resumenCartera'])->name('reporte.resumen.cartera');
+    
     // Rutas resource para reportes (si las necesitas)
     Route::resource('reportes', ReporteController::class)->except(['index']);
     
