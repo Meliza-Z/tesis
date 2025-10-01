@@ -201,7 +201,7 @@
         </div>
         <div class="info-row">
             <span class="info-label">Plazo:</span>
-            <span class="info-value">{{ $credito->plazo_dias ?? $credito->dias_plazo }} días</span>
+            <span class="info-value">{{ $credito->plazo_dias ?? ($credito->dias_plazo ?? 'N/A') }} días</span>
         </div>
         <div class="info-row">
             <span class="info-label">Monto Total del Crédito:</span>
@@ -243,13 +243,12 @@
                 <tr class="total-row">
                     <th colspan="2" class="text-right">Total Pagado:</th>
                     <td class="text-right">${{ number_format($credito->pagos->sum('monto_pago'), 2) }}</td>
-                    <th colspan="2"></th>
                 </tr>
             </tfoot>
         </table>
     @else
         <p>No hay pagos registrados para este crédito.</p>
-    @endforelse
+    @endif
 
     <div class="section-title">Productos en Crédito</div>
     @if ($credito->detalles->isNotEmpty())
@@ -263,24 +262,19 @@
                 </tr>
             </thead>
             <tbody>
-                @php $totalProductos = 0; @endphp
                 @foreach ($credito->detalles as $detalle)
-                    @php
-                        $subtotal = $detalle->cantidad * $detalle->precio_unitario;
-                        $totalProductos += $subtotal;
-                    @endphp
                     <tr>
                         <td>{{ $detalle->producto->nombre ?? 'Producto Desconocido' }}</td>
                         <td class="text-center">{{ $detalle->cantidad }}</td>
                         <td class="text-right">${{ number_format($detalle->precio_unitario, 2) }}</td>
-                        <td class="text-right">${{ number_format($subtotal, 2) }}</td>
+                        <td class="text-right">${{ number_format($detalle->subtotal, 2) }}</td>
                     </tr>
                 @endforeach
             </tbody>
             <tfoot>
                 <tr class="total-row">
                     <th colspan="3" class="text-right">Total Productos:</th>
-                    <td class="text-right">${{ number_format($totalProductos, 2) }}</td>
+                    <td class="text-right">${{ number_format($credito->monto_total, 2) }}</td>
                 </tr>
             </tfoot>
         </table>
@@ -299,7 +293,7 @@
         </div>
         <div class="summary-item total">
             <strong>Saldo Pendiente:</strong>
-            <span>${{ number_format($credito->monto_total - $credito->pagos->sum('monto_pago'), 2) }}</span>
+            <span>${{ number_format($credito->saldo_pendiente, 2) }}</span>
         </div>
     </div>
 

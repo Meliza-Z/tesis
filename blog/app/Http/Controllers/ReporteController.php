@@ -49,40 +49,63 @@ class ReporteController extends Controller
 
         $fecha = Carbon::parse($request->input('fecha'))->toDateString();
 
-        // Obtener detalles de crédito de la fecha seleccionada usando el nuevo esquema
-        $detalles = DetalleCredito::with(['producto', 'credito.cliente'])
-            ->whereDate('created_at', $fecha)
-            ->orderBy(DB::raw("(select nombre from clientes where clientes.id = (select cliente_id from creditos where creditos.id = detalle_creditos.credito_id))"))
-            ->orderBy(DB::raw("(select nombre from productos where productos.id = detalle_creditos.producto_id)"))
-            ->get()
-            ->map(function ($d) {
-                return (object) [
-                    'id' => $d->id,
-                    'cantidad' => $d->cantidad,
-                    'precio_unitario' => $d->precio_unitario, // accessor en decimales
-                    'subtotal' => $d->subtotal, // accessor en decimales
-                    'created_at' => $d->created_at,
-                    'cliente_nombre' => optional(optional($d->credito)->cliente)->nombre ?? 'N/D',
-                    'producto_nombre' => optional($d->producto)->nombre ?? 'N/D',
-                    'fecha_credito' => optional($d->credito)->fecha_credito,
-                    'credito_estado' => optional($d->credito)->estado,
-                ];
-            });
+        // 1. Obtener créditos creados en la fecha seleccionada
+        $creditosDelDia = Credito::with(['cliente', 'detalles.producto'])
+            ->whereDate('fecha_credito', $fecha)
+            ->get();
 
-        // Calcular totales
-        $totalDelDia = $detalles->sum('subtotal');
-        $totalTransacciones = $detalles->count();
-        $clientesUnicos = $detalles->pluck('cliente_nombre')->unique()->count();
+        // 2. Obtener pagos realizados en la fecha seleccionada
+        $pagosDelDia = \App\Models\Pago::with(['credito.cliente'])
+            ->whereDate('fecha_pago', $fecha)
+            ->get();
 
-        // Agrupar por cliente para mejor presentación
-        $detallesPorCliente = $detalles->groupBy('cliente_nombre');
+        // 3. Preparar datos de créditos nuevos
+        $creditosData = $creditosDelDia->map(function($credito) {
+            return [
+                'tipo' => 'credito',
+                'cliente_nombre' => $credito->cliente->nombre ?? 'N/D',
+                'credito_codigo' => $credito->codigo,
+                'monto' => $credito->monto_total,
+                'fecha' => $credito->fecha_credito,
+                'detalles' => $credito->detalles->map(function($detalle) {
+                    return [
+                        'producto' => $detalle->producto->nombre ?? 'N/D',
+                        'cantidad' => $detalle->cantidad,
+                        'precio_unitario' => $detalle->precio_unitario,
+                        'subtotal' => $detalle->subtotal,
+                    ];
+                }),
+            ];
+        });
+
+        // 4. Preparar datos de pagos
+        $pagosData = $pagosDelDia->map(function($pago) {
+            return [
+                'tipo' => 'pago',
+                'cliente_nombre' => optional($pago->credito->cliente)->nombre ?? 'N/D',
+                'credito_codigo' => optional($pago->credito)->codigo ?? 'N/D',
+                'monto' => $pago->monto_pago,
+                'fecha' => $pago->fecha_pago,
+                'metodo_pago' => $pago->metodo_pago ?? 'N/D',
+            ];
+        });
+
+        // 5. Calcular totales
+        $totalCreditosDelDia = $creditosDelDia->sum('monto_total');
+        $totalPagosDelDia = $pagosDelDia->sum('monto_pago');
+        $totalTransacciones = $creditosDelDia->count() + $pagosDelDia->count();
+        $clientesUnicos = collect([
+            ...$creditosDelDia->pluck('cliente.nombre'),
+            ...$pagosDelDia->pluck('credito.cliente.nombre')
+        ])->filter()->unique()->count();
 
         // Generar PDF
         $pdf = Pdf::loadView('reportes.reporte_diario_detalles', [
-            'detallesPorFecha' => $detalles,
-            'detallesPorCliente' => $detallesPorCliente,
+            'creditosData' => $creditosData,
+            'pagosData' => $pagosData,
             'fecha' => $fecha,
-            'totalDelDia' => $totalDelDia,
+            'totalCreditosDelDia' => $totalCreditosDelDia,
+            'totalPagosDelDia' => $totalPagosDelDia,
             'totalTransacciones' => $totalTransacciones,
             'clientesUnicos' => $clientesUnicos,
         ]);
@@ -101,9 +124,10 @@ class ReporteController extends Controller
     // Método privado para evitar duplicación de código
     private function calcularTotalesCredito($credito)
     {
-        $totalProductos = $credito->monto_total; // derivado (decimales)
-        $totalPagado = $credito->total_pagado_centavos / 100;
-        $saldoPendiente = $credito->saldo_pendiente; // derivado (decimales)
+        // Usar los accessors del modelo que calculan correctamente desde centavos
+        $totalProductos = $credito->monto_total; // accessor que divide centavos/100
+        $totalPagado = $credito->pagos->sum('monto_pago'); // suma directa de pagos (ya en decimales)
+        $saldoPendiente = $credito->saldo_pendiente; // accessor que calcula diferencia
         $totalCredito = $totalProductos;
 
         return compact('totalProductos', 'totalPagado', 'saldoPendiente', 'totalCredito');

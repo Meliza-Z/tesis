@@ -123,8 +123,12 @@
 
     <div class="summary-box">
         <div class="row">
-            <span class="label">Total Vendido:</span>
-            <span class="value">${{ number_format($totalDelDia, 2) }}</span>
+            <span class="label">Créditos Nuevos:</span>
+            <span class="value">${{ number_format($totalCreditosDelDia, 2) }}</span>
+        </div>
+        <div class="row">
+            <span class="label">Pagos Recibidos:</span>
+            <span class="value">${{ number_format($totalPagosDelDia, 2) }}</span>
         </div>
         <div class="row">
             <span class="label">Total Transacciones:</span>
@@ -136,53 +140,92 @@
         </div>
     </div>
 
-    @if($detallesPorFecha->count() > 0)
-        @foreach($detallesPorCliente as $cliente => $detalles)
-            <div class="cliente-section">
-                <div class="cliente-header">
-                    {{ $cliente }} ({{ $detalles->count() }} productos)
-                </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th style="width: 35%">Producto</th>
-                            <th style="width: 15%" class="text-center">Cantidad</th>
-                            <th style="width: 20%" class="text-right">Precio Unit.</th>
-                            <th style="width: 20%" class="text-right">Subtotal</th>
-                            <th style="width: 10%" class="text-center">Hora</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($detalles as $detalle)
+    @if($creditosData->count() > 0 || $pagosData->count() > 0)
+        
+        {{-- Sección de Créditos Nuevos --}}
+        @if($creditosData->count() > 0)
+            <h2 style="color: #007bff; margin-top: 30px; border-bottom: 2px solid #007bff; padding-bottom: 5px;">
+                Créditos Otorgados ({{ $creditosData->count() }})
+            </h2>
+            @foreach($creditosData as $credito)
+                <div class="cliente-section">
+                    <div class="cliente-header">
+                        {{ $credito['cliente_nombre'] }} - Crédito {{ $credito['credito_codigo'] }}
+                    </div>
+                    <table>
+                        <thead>
                             <tr>
-                                <td>{{ $detalle->producto_nombre }}</td>
-                                <td class="text-center">{{ $detalle->cantidad }}</td>
-                                <td class="text-right">${{ number_format($detalle->precio_unitario, 2) }}</td>
-                                <td class="text-right">${{ number_format($detalle->subtotal, 2) }}</td>
-                                <td class="text-center">{{ \Carbon\Carbon::parse($detalle->created_at)->format('H:i') }}</td>
+                                <th style="width: 50%">Producto</th>
+                                <th style="width: 15%" class="text-center">Cantidad</th>
+                                <th style="width: 17%" class="text-right">Precio Unit.</th>
+                                <th style="width: 18%" class="text-right">Subtotal</th>
                             </tr>
-                        @endforeach
-                        <tr class="cliente-total">
-                            <td colspan="3"><strong>Total para {{ $cliente }}:</strong></td>
-                            <td class="text-right"><strong>${{ number_format($detalles->sum('subtotal'), 2) }}</strong></td>
-                            <td></td>
+                        </thead>
+                        <tbody>
+                            @foreach($credito['detalles'] as $detalle)
+                                <tr>
+                                    <td>{{ $detalle['producto'] }}</td>
+                                    <td class="text-center">{{ $detalle['cantidad'] }}</td>
+                                    <td class="text-right">${{ number_format($detalle['precio_unitario'], 2) }}</td>
+                                    <td class="text-right">${{ number_format($detalle['subtotal'], 2) }}</td>
+                                </tr>
+                            @endforeach
+                            <tr class="cliente-total">
+                                <td colspan="3"><strong>Total Crédito:</strong></td>
+                                <td class="text-right"><strong>${{ number_format($credito['monto'], 2) }}</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            @endforeach
+        @endif
+
+        {{-- Sección de Pagos Recibidos --}}
+        @if($pagosData->count() > 0)
+            <h2 style="color: #28a745; margin-top: 30px; border-bottom: 2px solid #28a745; padding-bottom: 5px;">
+                Pagos Recibidos ({{ $pagosData->count() }})
+            </h2>
+            <table style="margin-top: 15px;">
+                <thead>
+                    <tr>
+                        <th style="width: 30%">Cliente</th>
+                        <th style="width: 25%">Crédito</th>
+                        <th style="width: 20%" class="text-right">Monto</th>
+                        <th style="width: 25%" class="text-center">Método de Pago</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($pagosData as $pago)
+                        <tr>
+                            <td>{{ $pago['cliente_nombre'] }}</td>
+                            <td>{{ $pago['credito_codigo'] }}</td>
+                            <td class="text-right">${{ number_format($pago['monto'], 2) }}</td>
+                            <td class="text-center">{{ $pago['metodo_pago'] }}</td>
                         </tr>
-                    </tbody>
-                </table>
-            </div>
-        @endforeach
+                    @endforeach
+                    <tr class="cliente-total">
+                        <td colspan="2"><strong>Total Pagos del Día:</strong></td>
+                        <td class="text-right"><strong>${{ number_format($totalPagosDelDia, 2) }}</strong></td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+        @endif
 
         <div class="grand-total">
-            <h2>TOTAL GENERAL DEL DÍA: ${{ number_format($totalDelDia, 2) }}</h2>
+            <h2>RESUMEN DEL DÍA: {{ \Carbon\Carbon::parse($fecha)->format('d/m/Y') }}</h2>
+            <p>Créditos Otorgados: ${{ number_format($totalCreditosDelDia, 2) }} | 
+               Pagos Recibidos: ${{ number_format($totalPagosDelDia, 2) }}</p>
             <p>{{ $totalTransacciones }} transacciones realizadas | {{ $clientesUnicos }} clientes atendidos</p>
         </div>
     @else
         <div class="no-data">
-            <h3>No se encontraron ventas para la fecha seleccionada</h3>
+            <h3>No se encontraron transacciones para la fecha seleccionada</h3>
             <p>{{ \Carbon\Carbon::parse($fecha)->format('d/m/Y') }}</p>
         </div>
         <div class="grand-total">
-            <h2>TOTAL GENERAL DEL DÍA: $0.00</h2>
+            <h2>SIN ACTIVIDAD EN EL DÍA</h2>
+            <p>No se registraron créditos nuevos ni pagos recibidos</p>
         </div>
     @endif
 </body>

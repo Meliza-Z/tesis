@@ -1,29 +1,35 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <title>Reporte de Crédito - {{ $credito->cliente->nombre }}</title>
     <style>
         /* Fuentes */
         body {
-            font-family: DejaVu Sans, sans-serif; /* Mejor para compatibilidad con caracteres especiales en PDF */
+            font-family: DejaVu Sans, sans-serif;
+            /* Mejor para compatibilidad con caracteres especiales en PDF */
             font-size: 11px;
             margin: 20px;
             color: #333;
         }
-        
+
         /* Encabezado del Reporte */
         .header {
             text-align: center;
             margin-bottom: 30px;
             padding-bottom: 15px;
-            border-bottom: 2px solid #007bff; /* Línea de color para el encabezado */
+            border-bottom: 2px solid #007bff;
+            /* Línea de color para el encabezado */
         }
+
         .header h1 {
             margin: 0;
-            color: #003366; /* Azul oscuro para el título principal */
+            color: #003366;
+            /* Azul oscuro para el título principal */
             font-size: 24px;
         }
+
         .header p {
             margin: 2px 0;
             font-size: 10px;
@@ -33,7 +39,8 @@
         /* Títulos de Sección */
         .section-title {
             font-size: 16px;
-            color: #007bff; /* Azul para títulos de sección */
+            color: #007bff;
+            /* Azul para títulos de sección */
             margin-top: 25px;
             margin-bottom: 10px;
             border-bottom: 1px solid #eee;
@@ -43,20 +50,26 @@
 
         /* Información General del Crédito (Formato de tabla para alineación) */
         .info-grid {
-            display: table; /* Simula un layout de dos columnas para asegurar alineación en PDF */
+            display: table;
+            /* Simula un layout de dos columnas para asegurar alineación en PDF */
             width: 100%;
             margin-bottom: 15px;
         }
+
         .info-row {
             display: table-row;
         }
-        .info-label, .info-value {
+
+        .info-label,
+        .info-value {
             display: table-cell;
             padding: 4px 0;
         }
+
         .info-label {
             font-weight: bold;
-            width: 160px; /* Ancho fijo para las etiquetas */
+            width: 160px;
+            /* Ancho fijo para las etiquetas */
             color: #555;
         }
 
@@ -66,31 +79,42 @@
             border-collapse: collapse;
             margin-top: 15px;
             margin-bottom: 20px;
-            box-shadow: 0 0 5px rgba(0,0,0,0.1); /* Sombra ligera para las tablas */
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+            /* Sombra ligera para las tablas */
         }
-        th, td {
+
+        th,
+        td {
             border: 1px solid #ddd;
             padding: 8px;
             text-align: left;
         }
+
         th {
-            background-color: #e9f5ff; /* Fondo azul claro para encabezados de tabla */
+            background-color: #e9f5ff;
+            /* Fondo azul claro para encabezados de tabla */
             font-weight: bold;
             color: #333;
             text-align: center;
         }
+
         td {
             vertical-align: top;
         }
+
         .text-right {
             text-align: right;
         }
+
         .text-center {
             text-align: center;
         }
+
         /* Fila de totales en tablas */
-        .total-row th, .total-row td {
-            background-color: #d1ecf1; /* Fondo diferente para filas de total */
+        .total-row th,
+        .total-row td {
+            background-color: #d1ecf1;
+            /* Fondo diferente para filas de total */
             color: #003366;
             font-size: 12px;
             font-weight: bold;
@@ -98,14 +122,19 @@
 
         /* Resumen Financiero */
         .summary-box {
-            border: 1px solid #007bff; /* Borde azul principal */
+            border: 1px solid #007bff;
+            /* Borde azul principal */
             padding: 15px;
-            background-color: #eaf6ff; /* Fondo azul muy claro */
+            background-color: #eaf6ff;
+            /* Fondo azul muy claro */
             margin-top: 30px;
-            width: 60%; /* Ajustado para que no ocupe todo el ancho si no es necesario */
+            width: 60%;
+            /* Ajustado para que no ocupe todo el ancho si no es necesario */
             margin-left: auto;
-            margin-right: auto; /* Centrar la caja de resumen */
+            margin-right: auto;
+            /* Centrar la caja de resumen */
         }
+
         .summary-item {
             /* Usar display table para alineación robusta en PDF */
             display: table;
@@ -113,23 +142,31 @@
             margin-bottom: 8px;
             font-size: 14px;
         }
-        .summary-item .label, .summary-item .value {
+
+        .summary-item .label,
+        .summary-item .value {
             display: table-cell;
             padding-bottom: 3px;
         }
+
         .summary-item .label {
             font-weight: bold;
             color: #003366;
-            width: 70%; /* Ajuste para el ancho de la etiqueta */
+            width: 70%;
+            /* Ajuste para el ancho de la etiqueta */
         }
+
         .summary-item .value {
             text-align: right;
             font-weight: bold;
-            color: #28a745; /* Color verde para montos positivos */
+            color: #28a745;
+            /* Color verde para montos positivos */
         }
+
         .summary-item.balance .value {
             font-size: 18px;
-            color: #dc3545; /* Color rojo para el saldo pendiente */
+            color: #dc3545;
+            /* Color rojo para el saldo pendiente */
         }
 
         /* Badges de Estado */
@@ -141,14 +178,37 @@
             font-weight: bold;
             color: #fff;
         }
+
         /* Colores para los estados */
-        .status-activo { background-color: #28a745; } /* green */
-        .status-inactivo { background-color: #dc3545; } /* red */
-        .status-pagado { background-color: #007bff; } /* blue */
-        .status-pendiente { background-color: #ffc107; color: #333; } /* yellow */
-        .status-vencido { background-color: #6c757d; } /* gray */
+        .status-activo {
+            background-color: #28a745;
+        }
+
+        /* green */
+        .status-inactivo {
+            background-color: #dc3545;
+        }
+
+        /* red */
+        .status-pagado {
+            background-color: #007bff;
+        }
+
+        /* blue */
+        .status-pendiente {
+            background-color: #ffc107;
+            color: #333;
+        }
+
+        /* yellow */
+        .status-vencido {
+            background-color: #6c757d;
+        }
+
+        /* gray */
     </style>
 </head>
+
 <body>
 
     <div class="header">
@@ -180,8 +240,12 @@
                 @php
                     $estadoClass = strtolower($credito->estado);
                     // Lógica para marcar como "vencido" si la fecha de vencimiento es pasada y no está pagado
-                    if ($credito->estado != 'pagado' && $credito->fecha_vencimiento && \Carbon\Carbon::parse($credito->fecha_vencimiento)->isPast()) {
-                         $estadoClass = 'vencido';
+                    if (
+                        $credito->estado != 'pagado' &&
+                        $credito->fecha_vencimiento &&
+                        \Carbon\Carbon::parse($credito->fecha_vencimiento)->isPast()
+                    ) {
+                        $estadoClass = 'vencido';
                     }
                 @endphp
                 <span class="status-badge status-{{ $estadoClass }}">{{ ucfirst($credito->estado) }}</span>
@@ -205,7 +269,7 @@
                     <td>{{ $detalle->producto->nombre ?? 'Producto Desconocido' }}</td>
                     <td class="text-center">{{ $detalle->cantidad }}</td>
                     <td class="text-right">${{ number_format($detalle->precio_unitario, 2) }}</td>
-                    <td class="text-right">${{ number_format($detalle->cantidad * $detalle->precio_unitario, 2) }}</td>
+                    <td class="text-right">${{ number_format($detalle->subtotal, 2) }}</td>
                 </tr>
             @empty
                 <tr>
@@ -216,7 +280,7 @@
         <tfoot>
             <tr class="total-row">
                 <th colspan="3" class="text-right">Total Crédito en Productos:</th>
-                <td class="text-right">${{ number_format($totalProductos, 2) }}</td>
+                <td class="text-right">${{ number_format($credito->monto_total, 2) }}</td>
             </tr>
         </tfoot>
     </table>
@@ -245,9 +309,8 @@
         </tbody>
         <tfoot>
             <tr class="total-row">
-                <th colspan="1" class="text-right">Total Pagado:</th>
-                <td class="text-right">${{ number_format($totalPagado, 2) }}</td>
-                <th colspan="1"></th>
+                <th colspan="2" class="text-right">Total Pagado:</th>
+                <td class="text-right">${{ number_format($credito->pagos->sum('monto_pago'), 2) }}</td>
             </tr>
         </tfoot>
     </table>
@@ -255,24 +318,21 @@
     <div class="section-title">Resumen Financiero</div>
     <div class="summary-box">
         <div class="summary-item">
-            <span class="label">Límite de Crédito:</span>
-            <span class="value">${{ number_format($totalCredito, 2) }}</span>
-        </div>
-        <div class="summary-item">
             <span class="label">Total Crédito en Productos:</span>
-            <span class="value">${{ number_format($totalProductos, 2) }}</span>
+            <span class="value">${{ number_format($credito->monto_total, 2) }}</span>
         </div>
         <div class="summary-item">
             <span class="label">Total Pagado:</span>
-            <span class="value">${{ number_format($totalPagado, 2) }}</span>
+            <span class="value">${{ number_format($credito->pagos->sum('monto_pago'), 2) }}</span>
         </div>
         <div class="summary-item balance">
             <span class="label">Saldo Pendiente:</span>
-            <span class="value" style="color: {{ $saldoPendiente > 0 ? '#dc3545' : '#28a745' }};">
-                ${{ number_format($saldoPendiente, 2) }}
+            <span class="value" style="color: {{ $credito->saldo_pendiente > 0 ? '#dc3545' : '#28a745' }};">
+                ${{ number_format($credito->saldo_pendiente, 2) }}
             </span>
         </div>
     </div>
 
 </body>
+
 </html>

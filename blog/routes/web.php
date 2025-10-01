@@ -56,8 +56,8 @@ Route::middleware('auth')->group(function () {
         return view('reportes.index', compact('creditos'));
     })->name('reportes.index');
     
-    // Reporte diario - PDF
-    Route::get('/reporte-diario', [ReporteController::class, 'reportePorDia'])->name('reporte.diario');
+    // Reporte diario - PDF (método simplificado)
+    Route::get('/reporte-diario', [ReporteController::class, 'reporteDiarioSimple'])->name('reporte.diario');
     
     // Reporte por cliente - Vista previa
     Route::get('/reporte-cliente/{credito}', [ReporteController::class, 'vistaReportePorCliente'])->name('reporte.cliente');
