@@ -60,15 +60,18 @@ class ProductoController extends Controller
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
             'categoria' => 'required|string|in:' . implode(',', array_keys(self::getCategorias())),
-            'precio_base_centavos' => 'required|integer|min:0',
+            'precio_base' => 'required|numeric|min:0',
         ]);
+
+        // Convertir precio decimal a centavos
+        $precioCentavos = (int) round($request->precio_base * 100);
 
         // Asignación explícita para activar mutators (precio -> precio_base_centavos)
         $producto = new Producto();
         $producto->nombre = $request->nombre;
         $producto->descripcion = $request->descripcion;
         $producto->categoria = $request->categoria;
-        $producto->precio_base_centavos = (int) $request->precio_base_centavos;
+        $producto->precio_base_centavos = $precioCentavos;
         $producto->save();
 
         return redirect()->route('productos.index')->with('success', 'Producto creado correctamente.');
@@ -86,13 +89,16 @@ class ProductoController extends Controller
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
             'categoria' => 'required|string|in:' . implode(',', array_keys(self::getCategorias())),
-            'precio_base_centavos' => 'required|integer|min:0',
+            'precio_base' => 'required|numeric|min:0',
         ]);
+
+        // Convertir precio decimal a centavos
+        $precioCentavos = (int) round($request->precio_base * 100);
 
         $producto->nombre = $request->nombre;
         $producto->descripcion = $request->descripcion;
         $producto->categoria = $request->categoria;
-        $producto->precio_base_centavos = (int) $request->precio_base_centavos;
+        $producto->precio_base_centavos = $precioCentavos;
         $producto->save();
 
         return redirect()->route('productos.index')->with('success', 'Producto actualizado correctamente.');
