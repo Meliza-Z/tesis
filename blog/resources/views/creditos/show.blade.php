@@ -12,7 +12,7 @@
                 <i class="fas fa-file-pdf me-1"></i>
                 Descargar PDF
             </a>
-            <a href="{{ route('creditos.index') }}" class="btn btn-secondary shadow-sm">
+            <a href="{{ route('cuenta_cobrar.index') }}" class="btn btn-secondary shadow-sm">
                 <i class="fas fa-arrow-left me-1"></i>
                 Volver a Créditos
             </a>
