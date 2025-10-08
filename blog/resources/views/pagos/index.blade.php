@@ -138,6 +138,7 @@
                             <th class="border-0 text-center">Monto</th>
                             <th class="border-0 text-center">Método</th>
                             <th class="border-0 text-center">Estado</th>
+                            <th class="border-0 text-center">WhatsApp</th>
                             <th class="border-0 text-center">Acciones</th>
                         </tr>
                     </thead>
@@ -177,6 +178,34 @@
                                         $metodoBadgeClass = 'bg-secondary';
                                         $metodoIcon = 'fas fa-question';
                                         break;
+                                }
+
+                                // Calcular días para vencimiento
+                                $credito = $pago->credito;
+                                $fechaVencimiento = $credito->fecha_vencimiento_ext ?? $credito->fecha_vencimiento;
+                                $hoy = \Carbon\Carbon::now();
+                                $diasParaVencimiento = $hoy->diffInDays($fechaVencimiento, false);
+                                $mostrarWhatsApp = $diasParaVencimiento >= 0 && $diasParaVencimiento <= 3 && $credito->estado !== 'pagado';
+                                
+                                // Preparar datos para WhatsApp
+                                if ($mostrarWhatsApp && $credito->cliente) {
+                                    $cliente = $credito->cliente;
+                                    $telefono = preg_replace('/[^0-9]/', '', $cliente->telefono ?? '');
+                                    $saldoPendiente = number_format($credito->saldo_pendiente, 2);
+                                    $fechaVencimientoFormato = $fechaVencimiento->format('d/m/Y');
+                                    
+                                    $mensaje = "Hola {$cliente->nombre}, te recordamos que tu crédito #{$credito->codigo} con saldo pendiente de \${$saldoPendiente} vence el {$fechaVencimientoFormato}";
+                                    if ($diasParaVencimiento == 0) {
+                                        $mensaje .= " (hoy). ";
+                                    } elseif ($diasParaVencimiento == 1) {
+                                        $mensaje .= " (mañana). ";
+                                    } else {
+                                        $mensaje .= " (en {$diasParaVencimiento} días). ";
+                                    }
+                                    $mensaje .= "Por favor, coordina tu pago. ¡Gracias!";
+                                    
+                                    $mensajeCodificado = urlencode($mensaje);
+                                    $urlWhatsApp = "https://wa.me/{$telefono}?text={$mensajeCodificado}";
                                 }
                             @endphp
                             <tr class="pago-row"
@@ -224,6 +253,19 @@
                                     </span>
                                 </td>
                                 <td class="text-center align-middle">
+                                    @if($mostrarWhatsApp)
+                                        <a href="{{ $urlWhatsApp }}" 
+                                           target="_blank" 
+                                           class="btn btn-whatsapp btn-sm shadow-sm" 
+                                           title="Enviar recordatorio por WhatsApp (vence en {{ $diasParaVencimiento }} {{ $diasParaVencimiento == 1 ? 'día' : 'días' }})">
+                                            <i class="fab fa-whatsapp me-1"></i>
+                                            <span class="badge bg-danger rounded-pill">{{ $diasParaVencimiento }}</span>
+                                        </a>
+                                    @else
+                                        <span class="text-muted small">-</span>
+                                    @endif
+                                </td>
+                                <td class="text-center align-middle">
                                     <div class="btn-group btn-group-sm" role="group">
                                         <a href="{{ route('pagos.edit', $pago) }}" class="btn btn-outline-primary" title="Editar Pago">
                                             <i class="fas fa-edit"></i>
@@ -236,7 +278,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="text-center py-4">
+                                <td colspan="8" class="text-center py-4">
                                     <i class="fas fa-info-circle me-2"></i> No se encontraron pagos.
                                     <a href="{{ route('pagos.create') }}" class="btn btn-link p-0">Crear nuevo pago</a>.
                                 </td>
@@ -354,6 +396,27 @@
     /* Pequeño margen para los botones en la barra superior */
     .d-sm-flex .btn {
         margin-left: 0.75rem;
+    }
+    
+    /* Estilos para el botón de WhatsApp */
+    .btn-whatsapp {
+        background-color: #25d366;
+        color: white;
+        border: none;
+        padding: 0.4rem 0.8rem;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-whatsapp:hover {
+        background-color: #128c7e;
+        color: white;
+        transform: scale(1.05);
+        box-shadow: 0 4px 8px rgba(37, 211, 102, 0.3);
+    }
+    
+    .btn-whatsapp .badge {
+        font-size: 0.7rem;
+        margin-left: 0.2rem;
     }
 </style>
 @endsection

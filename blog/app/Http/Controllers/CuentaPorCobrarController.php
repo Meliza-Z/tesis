@@ -24,6 +24,7 @@ class CuentaPorCobrarController extends Controller
                 'id' => $c->id,
                 'codigo' => $c->codigo,
                 'cliente' => optional($c->cliente)->nombre ?? 'N/D',
+                'telefono' => optional($c->cliente)->telefono ?? '',
                 'monto' => $monto / 100,
                 'saldo' => $saldo / 100,
                 'vence' => $vence ? $vence->toDateString() : null,
