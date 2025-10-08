@@ -34,7 +34,7 @@ class DetallesCreditoController extends Controller
     {
         $creditos = \App\Models\Credito::with('cliente')
             ->where(function ($q) {
-                $q->whereIn('estado', ['pendiente'])
+                $q->whereIn('estado', ['pendiente', 'activo'])
                     ->orDoesntHave('detalles');
             })
             ->get();
